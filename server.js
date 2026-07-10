@@ -247,6 +247,12 @@ app.get('/api/polls/:id/stream', (req, res) => {
   });
 });
 
+// Alle sonstigen Pfade (z.B. /A1B2C3) liefern die Weboberfläche aus,
+// die dann selbst anhand der URL den Umfrage-Code erkennt.
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 app.listen(PORT, () => {
   console.log(`Terminfinder-Backend läuft auf Port ${PORT}`);
   if (!mailer) console.warn('Hinweis: Kein SMTP konfiguriert -- E-Mails werden nur geloggt, nicht versendet.');

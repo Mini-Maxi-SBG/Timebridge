@@ -364,9 +364,13 @@
 
   async function openPoll(id) {
     state.view = 'poll'; state.loading = true; state.currentPollId = id; state.error = ''; state.orgMsg = ''; render();
+    if (window.location.pathname.replace(/^\/+/, '').toUpperCase() !== id) {
+      window.history.pushState({}, '', '/' + id);
+    }
     const poll = await apiGet('/api/polls/' + id);
     if (!poll) {
       state.loading = false; state.view = 'home'; state.error = 'Keine Umfrage mit diesem Code gefunden.';
+      window.history.pushState({}, '', '/');
       state.pollIndex = await apiGet('/api/polls') || []; render(); return;
     }
     state.currentPoll = poll;
@@ -425,7 +429,8 @@
         (poll.description ? '<p class="tf-sub" style="margin-top:8px">' + escapeHtml(poll.description) + '</p>' : '') +
         '<p class="tf-sub">Erstellt von ' + escapeHtml(poll.creator) + '</p>' +
         '<div class="tf-code-display" data-action="copy-code" title="Klicken zum Kopieren">' + poll.id + '</div>' +
-        '<div class="tf-code-hint">Diesen Code an andere weitergeben, damit sie hier mit abstimmen können.</div></div>' +
+        '<div class="tf-code-hint">Diesen Code an andere weitergeben, damit sie hier mit abstimmen können.</div>' +
+        '<button class="tf-btn-secondary" data-action="copy-link" style="width:100%;margin-top:10px">🔗 Direkten Link zu dieser Umfrage kopieren</button></div>' +
       '<div class="tf-card"><h2>Deine Stimme</h2>' +
         '<div class="tf-field" style="margin-top:12px"><label class="tf-label">Dein Name</label><input id="tf-vote-name" placeholder="Name eingeben" value="' + escapeHtml(state.myName) + '" /></div>' +
         '<table class="tf-grid"><tbody>' + voteRows + '</tbody></table>' +
@@ -442,11 +447,17 @@
         '<button class="tf-btn-secondary" data-action="finalize">Abschließen</button></div></div>' +
         (state.orgMsg ? '<div class="tf-ok">' + escapeHtml(state.orgMsg) + '</div>' : '') + '</div>';
 
-    root.querySelector('[data-action="back-home"]').onclick = async () => { stopLive(); state.view = 'home'; state.error = ''; state.pollIndex = await apiGet('/api/polls') || []; render(); };
+    root.querySelector('[data-action="back-home"]').onclick = async () => { stopLive(); state.view = 'home'; state.error = ''; window.history.pushState({}, '', '/'); state.pollIndex = await apiGet('/api/polls') || []; render(); };
     root.querySelector('[data-action="copy-code"]').onclick = (e) => {
       navigator.clipboard && navigator.clipboard.writeText(state.currentPoll.id).catch(() => {});
       const el = e.currentTarget, original = el.textContent;
       el.textContent = 'Kopiert!'; setTimeout(() => { el.textContent = original; }, 1200);
+    };
+    root.querySelector('[data-action="copy-link"]').onclick = (e) => {
+      const link = window.location.origin + '/' + state.currentPoll.id;
+      navigator.clipboard && navigator.clipboard.writeText(link).catch(() => {});
+      const el = e.currentTarget, original = el.textContent;
+      el.textContent = '✓ Link kopiert'; setTimeout(() => { el.textContent = original; }, 1500);
     };
     root.querySelectorAll('[data-action="vote"]').forEach(btn => btn.onclick = () => {
       const opt = btn.getAttribute('data-opt'), val = btn.getAttribute('data-val');
@@ -486,8 +497,19 @@
 
   (async function init() {
     state.pollIndex = await apiGet('/api/polls') || [];
-    render();
+    const urlCode = window.location.pathname.replace(/^\/+/, '').trim().toUpperCase();
+    if (urlCode) {
+      openPoll(urlCode);
+    } else {
+      render();
+    }
   })();
+
+  window.addEventListener('popstate', () => {
+    const code = window.location.pathname.replace(/^\/+/, '').trim().toUpperCase();
+    if (code) openPoll(code);
+    else { stopLive(); state.view = 'home'; state.error = ''; render(); }
+  });
 })();
 </script>
 </body>
