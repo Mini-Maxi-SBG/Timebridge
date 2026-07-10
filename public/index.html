@@ -413,9 +413,9 @@
         '<input type="time" data-field="time" data-id="' + o.id + '" value="' + o.time + '" />' +
         '<button class="tf-btn-icon" data-action="remove-option" data-id="' + o.id + '" aria-label="remove">✕</button></div>'
     ).join('');
-    const n = state.createNotify;
 
     root.innerHTML =
+      '<div class="tf-header tf-header-compact">' + CAL_ICON + '</div>' +
       '<button class="tf-back" data-action="back-home">' + s.back + '</button>' +
       '<div class="tf-card"><h2>' + s.newPollTitle + '</h2>' +
         '<div class="tf-field"><label class="tf-label">' + s.titleLabel + '</label><input id="tf-title" placeholder="' + s.titlePlaceholder + '" value="' + escapeHtml(state._title || '') + '" /></div>' +
@@ -424,20 +424,7 @@
         '<div class="tf-field"><label class="tf-label">' + s.optionsLabel + '</label><div id="tf-options">' + optsHtml + '</div>' +
         '<button class="tf-btn-secondary" data-action="add-option" style="margin-top:4px">' + s.addOptionBtn + '</button></div>' +
         (state.error ? '<div class="tf-error">' + escapeHtml(state.error) + '</div>' : '') +
-        '<button class="tf-btn-primary" data-action="submit-create" style="margin-top:8px">' + s.submitCreateBtn + '</button></div>' +
-      '<div class="tf-card"><h2>' + s.notifSectionTitle + '</h2><p class="tf-sub">' + s.notifSectionSub + '</p>' +
-        '<div class="tf-toggle-row"><div><div class="tf-toggle-label">' + s.pushLabel + '</div><div class="tf-toggle-sub">' + s.pushSub + '</div></div>' +
-        '<label class="tf-switch"><input type="checkbox" data-notify="push" ' + (n.push ? 'checked' : '') + '><span class="tf-switch-track"></span></label></div>' +
-        '<div class="tf-toggle-row"><div><div class="tf-toggle-label">' + s.emailLabel + '</div><div class="tf-toggle-sub">' + s.emailSub + '</div></div>' +
-        '<label class="tf-switch"><input type="checkbox" data-notify="email" ' + (n.email ? 'checked' : '') + '><span class="tf-switch-track"></span></label></div>' +
-        (n.email ? '<div class="tf-field" style="margin-top:10px"><label class="tf-label">' + s.emailsLabel + '</label>' +
-          '<textarea id="tf-emails" rows="2" placeholder="' + s.emailsPlaceholder + '">' + escapeHtml(state.createEmails) + '</textarea>' +
-          '<div class="tf-hint">' + s.emailsHint + '</div></div>' : '') +
-        '<div class="tf-toggle-row"><div><div class="tf-toggle-label">' + s.teamsLabel + '</div><div class="tf-toggle-sub">' + s.teamsSub + '</div></div>' +
-        '<label class="tf-switch"><input type="checkbox" data-notify="teams" ' + (n.teams ? 'checked' : '') + '><span class="tf-switch-track"></span></label></div>' +
-        (n.teams ? '<div class="tf-field" style="margin-top:10px"><label class="tf-label">' + s.teamsWebhookLabel + '</label>' +
-          '<input id="tf-teams-webhook" placeholder="https://outlook.office.com/webhook/…" value="' + escapeHtml(state.createTeamsWebhook) + '" /></div>' : '') +
-        '</div>';
+        '<button class="tf-btn-primary" data-action="submit-create" style="margin-top:8px">' + s.submitCreateBtn + '</button></div>';
 
     root.querySelector('[data-action="back-home"]').onclick = () => { state.view = 'home'; state.error = ''; render(); };
     root.querySelector('[data-action="add-option"]').onclick = () => { readCreateForm(); state.createOptions.push({ id: uid(), date: '', time: '' }); render(); };
@@ -567,8 +554,7 @@
         '<button class="tf-btn-secondary" data-action="refresh" style="padding:6px 10px;font-size:12px">' + s.refreshBtn + '</button></div>' +
         (state.votes.length ? '<div style="overflow-x:auto"><table class="tf-grid"><thead><tr><th style="text-align:left">' + s.dateCol + '</th>' + participantHeaders + '<th>' + s.yesCol + '</th></tr></thead><tbody>' + resultRows + '</tbody></table></div>' : '<div class="tf-empty">' + s.noVotesYet + '</div>') + '</div>' +
       '<div class="tf-card"><h2>' + s.organizerTitle + '</h2>' +
-        '<button class="tf-btn-secondary" data-action="remind">' + s.remindBtn + '</button>' +
-        '<div class="tf-field" style="margin-top:14px"><label class="tf-label">' + s.finalizeLabel + '</label>' +
+        '<div class="tf-field"><label class="tf-label">' + s.finalizeLabel + '</label>' +
         '<div class="tf-row"><select id="tf-finalize-select" style="flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--paper);border-radius:6px;padding:10px 12px;font-size:14px"><option value="">' + s.finalizeSelectPlaceholder + '</option>' + optionSelectHtml + '</select>' +
         '<button class="tf-btn-secondary" data-action="finalize">' + s.finalizeBtn + '</button></div></div>' +
         (state.orgMsg ? '<div class="tf-ok">' + escapeHtml(state.orgMsg) + '</div>' : '') + '</div>';
@@ -592,12 +578,6 @@
     });
     root.querySelector('[data-action="submit-vote"]').onclick = submitVote;
     root.querySelector('[data-action="refresh"]').onclick = () => refreshPollView(false);
-    root.querySelector('[data-action="remind"]').onclick = async (e) => {
-      e.target.disabled = true;
-      const r = await apiPost('/api/polls/' + state.currentPollId + '/remind', {});
-      state.orgMsg = r ? s.remindSent(r.sent) : s.remindFailed;
-      render();
-    };
     root.querySelector('[data-action="finalize"]').onclick = async () => {
       const sel = root.querySelector('#tf-finalize-select'), optionId = sel ? sel.value : '';
       if (!optionId) { state.orgMsg = s.finalizeChooseFirst; render(); return; }
