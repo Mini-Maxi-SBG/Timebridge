@@ -152,6 +152,15 @@
   let eventSource = null, pollTimer = null, knownVoteKeys = new Set();
 
   function uid() { return Math.random().toString(36).slice(2, 8).toUpperCase(); }
+  function getVoterId() {
+    let id = localStorage.getItem('tf-voter-id');
+    if (!id) {
+      id = (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2)));
+      localStorage.setItem('tf-voter-id', id);
+    }
+    return id;
+  }
+  const voterId = getVoterId();
   function sanitizeKey(str) { return (str || 'gast').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').slice(0, 40) || 'gast'; }
   function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
@@ -490,7 +499,7 @@
     state.error = ''; state.myName = name; localStorage.setItem('tf-my-name', name);
     const btn = root.querySelector('[data-action="submit-vote"]');
     if (btn) { btn.disabled = true; btn.textContent = 'Wird gespeichert …'; }
-    const ok = await apiPost('/api/polls/' + state.currentPollId + '/votes', { name, choices: state.myChoices });
+    const ok = await apiPost('/api/polls/' + state.currentPollId + '/votes', { name, choices: state.myChoices, voterId });
     if (!ok) { state.error = 'Stimme konnte nicht gespeichert werden.'; render(); return; }
     await refreshPollView(true);
   }

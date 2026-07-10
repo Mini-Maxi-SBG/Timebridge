@@ -164,10 +164,13 @@ app.get('/api/polls/:id/votes', (req, res) => {
 app.post('/api/polls/:id/votes', async (req, res) => {
   const poll = db.polls[req.params.id];
   if (!poll) return res.status(404).json({ error: 'Umfrage nicht gefunden' });
-  const { name, email, choices } = req.body || {};
+  const { name, email, choices, voterId } = req.body || {};
   if (!name || !choices) return res.status(400).json({ error: 'name und choices sind erforderlich.' });
 
-  const key = name.trim().toLowerCase();
+  // Bevorzugt eine geräteeigene Kennung als Schlüssel, damit zwei Personen mit dem
+  // gleichen Namen sich nicht gegenseitig überschreiben. Ohne Kennung (ältere Clients)
+  // wird auf den Namen zurückgefallen.
+  const key = voterId ? 'v:' + voterId : name.trim().toLowerCase();
   db.votes[poll.id] = db.votes[poll.id] || {};
   db.votes[poll.id][key] = { name: name.trim(), email: email || '', choices, votedAt: Date.now() };
   saveData();
