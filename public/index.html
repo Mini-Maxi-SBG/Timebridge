@@ -41,13 +41,15 @@
   .tf-lang-switch { position: absolute; top: 0; right: 16px; display: flex; gap: 6px; }
   .tf-lang-btn {
     background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
-    width: 34px; height: 30px; font-size: 16px; display: flex; align-items: center; justify-content: center;
-    opacity: 0.55; filter: grayscale(40%);
+    width: 38px; height: 30px; display: flex; align-items: center; justify-content: center;
+    opacity: 0.55; padding: 0;
   }
-  .tf-lang-btn.active { opacity: 1; filter: none; border-color: var(--amber); }
+  .tf-lang-btn svg { width: 22px; height: 16px; border-radius: 2px; display: block; }
+  .tf-lang-btn.active { opacity: 1; border-color: var(--amber); }
   .tf-lang-btn:hover { opacity: 1; }
 
-  .tf-header { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 6px 0 30px; }
+  .tf-header { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 46px 0 30px; }
+  .tf-header-compact { padding: 46px 0 6px; }
   .tf-logo-icon { width: 56px; height: 44px; flex-shrink: 0; }
   .tf-logo-check {
     animation: tf-pulse 2.8s ease-in-out infinite;
@@ -157,8 +159,12 @@
 <body>
 <div id="tf-root">
   <div class="tf-lang-switch" id="tf-lang-switch">
-    <button class="tf-lang-btn" data-lang="de" aria-label="Deutsch">🇩🇪</button>
-    <button class="tf-lang-btn" data-lang="en" aria-label="English">🇬🇧</button>
+    <button class="tf-lang-btn" data-lang="de" aria-label="Deutsch">
+      <svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="5.34" y="0" fill="#000"/><rect width="24" height="5.34" y="5.33" fill="#DD0000"/><rect width="24" height="5.34" y="10.66" fill="#FFCE00"/></svg>
+    </button>
+    <button class="tf-lang-btn" data-lang="en" aria-label="English">
+      <svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="16" fill="#00247D"/><path d="M0,0 L24,16 M24,0 L0,16" stroke="#fff" stroke-width="3"/><path d="M0,0 L24,16 M24,0 L0,16" stroke="#CF142B" stroke-width="1.2"/><rect x="9" width="6" height="16" fill="#fff"/><rect y="6" width="24" height="4" fill="#fff"/><rect x="10.5" width="3" height="16" fill="#CF142B"/><rect y="7" width="24" height="2" fill="#CF142B"/></svg>
+    </button>
   </div>
   <div id="tf-app"></div>
 </div>
@@ -541,6 +547,7 @@
     const optionSelectHtml = poll.options.map(o => '<option value="' + o.id + '">' + fmtOption(o) + '</option>').join('');
 
     root.innerHTML =
+      '<div class="tf-header tf-header-compact">' + CAL_ICON + '</div>' +
       '<button class="tf-back" data-action="back-home">' + s.backAll + '</button>' +
       (finalOption ? '<div class="tf-final-banner">' + s.finalBanner(fmtOption(finalOption)) + '</div>' : '') +
       '<div class="tf-card"><div class="tf-status-row"><h2 style="font-size:20px">' + escapeHtml(poll.title) + '</h2>' +
