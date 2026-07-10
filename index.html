@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wann passt's? – Terminfinder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    --ink: #1C2333;
+    --panel: #242C40;
+    --panel-2: #2C3550;
+    --paper: #F5F1E6;
+    --amber: #E8A33D;
+    --amber-dark: #7A5417;
+    --forest: #4C8C6B;
+    --forest-dark: #1E3D2C;
+    --rust: #C24E3A;
+    --rust-dark: #4A1C13;
+    --muted: #8993A6;
+    --line: #3A4360;
+    font-family: 'Inter', sans-serif;
+    background: var(--ink);
+    color: var(--paper);
+    margin: 0;
+    padding: 28px 16px 60px;
+  }
+  #tf-root { max-width: 720px; margin: 0 auto; }
+  h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; margin: 0; }
+  button { font-family: 'Inter', sans-serif; cursor: pointer; border-radius: 6px; }
+  input, textarea {
+    font-family: 'Inter', sans-serif; background: var(--panel-2); border: 1px solid var(--line);
+    color: var(--paper); border-radius: 6px; padding: 10px 12px; font-size: 14px; width: 100%;
+  }
+  input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; }
+  ::placeholder { color: var(--muted); }
+
+  .tf-flapboard { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-bottom: 6px; }
+  .tf-flap {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+    padding: 8px 4px; min-width: 26px; text-align: center;
+    font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 20px;
+    color: var(--amber); box-shadow: inset 0 -1px 0 var(--line);
+  }
+  .tf-flap.space { background: transparent; border-color: transparent; min-width: 12px; }
+  .tf-tagline { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+
+  .tf-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+  .tf-card h2 { font-size: 17px; font-weight: 500; margin-bottom: 4px; }
+  .tf-card p.tf-sub { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+
+  .tf-row { display: flex; gap: 10px; }
+  .tf-btn-primary { background: var(--amber); color: #241a05; border: none; font-weight: 600; padding: 10px 16px; font-size: 14px; }
+  .tf-btn-primary:hover { background: #f0b158; }
+  .tf-btn-primary:disabled { opacity: 0.5; cursor: default; }
+  .tf-btn-secondary { background: transparent; color: var(--paper); border: 1px solid var(--line); padding: 10px 16px; font-size: 14px; }
+  .tf-btn-secondary:hover { border-color: var(--muted); }
+  .tf-btn-secondary:disabled { opacity: 0.4; cursor: default; }
+  .tf-btn-icon {
+    background: transparent; border: 1px solid var(--line); color: var(--muted);
+    width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .tf-btn-icon:hover { color: var(--rust); border-color: var(--rust); }
+
+  .tf-label { font-size: 12px; color: var(--muted); margin-bottom: 5px; display: block; letter-spacing: 0.02em; }
+  .tf-field { margin-bottom: 14px; }
+  .tf-hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+  .tf-option-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .tf-option-row input[type=date] { flex: 2; }
+  .tf-option-row input[type=time] { flex: 1; }
+
+  .tf-poll-list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 4px; border-top: 1px solid var(--line); cursor: pointer; }
+  .tf-poll-list-item:hover .tf-poll-title { color: var(--amber); }
+  .tf-poll-title { font-weight: 500; font-size: 14px; }
+  .tf-poll-meta { color: var(--muted); font-size: 12px; }
+  .tf-poll-code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--amber); background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 3px 7px; }
+
+  .tf-code-display {
+    font-family: 'IBM Plex Mono', monospace; font-size: 22px; letter-spacing: 0.15em;
+    color: var(--amber); background: var(--panel-2); border: 1px dashed var(--line);
+    border-radius: 6px; padding: 10px 14px; text-align: center; cursor: pointer; user-select: all;
+  }
+  .tf-code-hint { text-align: center; color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+  table.tf-grid { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.tf-grid th, table.tf-grid td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--line); }
+  table.tf-grid th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+  table.tf-grid td.tf-date-cell { text-align: left; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--paper); white-space: nowrap; }
+
+  .tf-vote-toggle { width: 30px; height: 30px; border-radius: 5px; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); font-size: 15px; margin: 0 3px; }
+  .tf-vote-toggle.yes.active { background: var(--forest); border-color: var(--forest); color: #eafff1; }
+  .tf-vote-toggle.no.active { background: var(--rust); border-color: var(--rust); color: #ffeeea; }
+
+  .tf-flap-cell { width: 26px; height: 26px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+  .tf-flap-cell.yes { background: var(--forest-dark); color: #8fe0b4; }
+  .tf-flap-cell.no { background: var(--rust-dark); color: #f0a696; }
+  .tf-best-row td { background: rgba(232, 163, 61, 0.08); }
+  .tf-best-badge { font-size: 10px; background: var(--amber); color: #241a05; border-radius: 3px; padding: 1px 5px; margin-left: 6px; font-weight: 600; vertical-align: middle; }
+  .tf-final-banner { background: rgba(76, 140, 107, 0.15); border: 1px solid var(--forest); color: #bdeed2; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
+
+  .tf-participant-col { font-size: 11px; color: var(--muted); font-weight: 500; }
+  .tf-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 18px 0; }
+  .tf-error { color: var(--rust); font-size: 13px; margin-top: 8px; }
+  .tf-ok { color: var(--forest); font-size: 12px; margin-top: 6px; }
+  .tf-back { color: var(--muted); font-size: 13px; background: none; border: none; padding: 0; margin-bottom: 16px; }
+  .tf-back:hover { color: var(--paper); }
+  .tf-loading { text-align: center; color: var(--muted); padding: 40px 0; font-size: 14px; }
+
+  .tf-status-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .tf-badge { font-size: 11px; padding: 3px 9px; border-radius: 20px; display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); color: var(--muted); }
+  .tf-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+  .tf-badge.live { color: #bdeed2; border-color: var(--forest); }
+  .tf-badge.live .dot { background: var(--forest); }
+  .tf-badge.poll .dot { background: var(--amber); }
+  .tf-badge.poll { color: var(--amber); border-color: var(--amber-dark); }
+
+  .tf-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-top: 1px solid var(--line); }
+  .tf-toggle-row:first-child { border-top: none; }
+  .tf-toggle-label { font-size: 13px; }
+  .tf-toggle-sub { font-size: 11px; color: var(--muted); }
+  .tf-switch { position: relative; width: 38px; height: 22px; flex-shrink: 0; }
+  .tf-switch input { opacity: 0; width: 0; height: 0; }
+  .tf-switch-track { position: absolute; inset: 0; background: var(--panel-2); border: 1px solid var(--line); border-radius: 20px; transition: background .15s; }
+  .tf-switch-track::before { content: ''; position: absolute; width: 16px; height: 16px; left: 2px; top: 2px; background: var(--muted); border-radius: 50%; transition: transform .15s, background .15s; }
+  .tf-switch input:checked + .tf-switch-track { background: var(--forest-dark); border-color: var(--forest); }
+  .tf-switch input:checked + .tf-switch-track::before { transform: translateX(16px); background: #bdeed2; }
+</style>
+</head>
+<body>
+<div id="tf-root"><div id="tf-app"></div></div>
+
+<script>
+(function() {
+  const root = document.getElementById('tf-app');
+  const POLL_INTERVAL_MS = 8000;
+
+  const state = {
+    view: 'home', pollIndex: [], createOptions: [],
+    createNotify: { email: false, teams: false, push: true },
+    createEmails: '', createTeamsWebhook: '',
+    currentPoll: null, currentPollId: null, votes: [],
+    myName: localStorage.getItem('tf-my-name') || '',
+    myChoices: {}, error: '', loading: false, liveMode: 'none',
+    notifPermission: (typeof Notification !== 'undefined') ? Notification.permission : 'unsupported',
+    orgMsg: ''
+  };
+  let eventSource = null, pollTimer = null, knownVoteKeys = new Set();
+
+  function uid() { return Math.random().toString(36).slice(2, 8).toUpperCase(); }
+  function sanitizeKey(str) { return (str || 'gast').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').slice(0, 40) || 'gast'; }
+  function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+  async function api(path, opts) {
+    try {
+      const res = await fetch(path, opts);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) { console.error('API-Aufruf fehlgeschlagen', path, e); return null; }
+  }
+  const apiGet = (p) => api(p);
+  const apiPost = (p, body) => api(p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+
+  function fmtOption(opt) {
+    const d = new Date(opt.date + 'T' + (opt.time || '00:00'));
+    const dateStr = d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+    return opt.time ? dateStr + ', ' + opt.time + ' Uhr' : dateStr;
+  }
+  function flapBoard(text) {
+    return text.toUpperCase().split('').map(ch => ch === ' ' ? '<div class="tf-flap space"></div>' : '<div class="tf-flap">' + ch + '</div>').join('');
+  }
+
+  function stopLive() {
+    if (eventSource) { eventSource.close(); eventSource = null; }
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    state.liveMode = 'none';
+  }
+  function startLive(pollId) {
+    stopLive();
+    try {
+      eventSource = new EventSource('/api/polls/' + pollId + '/stream');
+      eventSource.addEventListener('vote', () => refreshPollView(true));
+      eventSource.addEventListener('finalized', () => refreshPollView(true));
+      eventSource.onerror = () => { if (eventSource) { eventSource.close(); eventSource = null; } startPolling(pollId); };
+      state.liveMode = 'sse';
+      renderStatusBadgeOnly();
+    } catch (e) { startPolling(pollId); }
+  }
+  function startPolling(pollId) {
+    state.liveMode = 'poll';
+    renderStatusBadgeOnly();
+    pollTimer = setInterval(() => refreshPollView(false), POLL_INTERVAL_MS);
+  }
+  function renderStatusBadgeOnly() {
+    const el = document.getElementById('tf-status-badge');
+    if (!el) return;
+    if (state.liveMode === 'sse') { el.className = 'tf-badge live'; el.innerHTML = '<span class="dot"></span>Live'; }
+    else if (state.liveMode === 'poll') { el.className = 'tf-badge poll'; el.innerHTML = '<span class="dot"></span>Aktualisiert alle 8s'; }
+    else { el.className = 'tf-badge'; el.innerHTML = '<span class="dot"></span>Lokal'; }
+  }
+  async function refreshPollView(fromLiveEvent) {
+    if (state.view !== 'poll' || !state.currentPollId) return;
+    const votes = await apiGet('/api/polls/' + state.currentPollId + '/votes');
+    if (!votes) return;
+    const newKeys = new Set(votes.map(v => sanitizeKey(v.name)));
+    const addedVoters = votes.filter(v => !knownVoteKeys.has(sanitizeKey(v.name))).map(v => v.name);
+    knownVoteKeys = newKeys;
+    state.votes = votes;
+    const poll = await apiGet('/api/polls/' + state.currentPollId);
+    if (poll) state.currentPoll.finalizedOptionId = poll.finalizedOptionId;
+    if (addedVoters.length && fromLiveEvent === false) notifyBrowser('Neue Stimme(n) eingegangen', addedVoters.join(', ') + ' hat/haben abgestimmt.');
+    render();
+  }
+  function notifyBrowser(title, body) {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    try { new Notification(title, { body }); } catch (e) {}
+  }
+  async function requestNotifPermission() {
+    if (typeof Notification === 'undefined') { state.notifPermission = 'unsupported'; render(); return; }
+    state.notifPermission = await Notification.requestPermission();
+    render();
+  }
+
+  function render() {
+    if (state.view === 'home') return renderHome();
+    if (state.view === 'create') return renderCreate();
+    if (state.view === 'poll') return renderPoll();
+  }
+
+  function renderHome() {
+    const listHtml = state.pollIndex.length
+      ? state.pollIndex.slice(0, 8).map(p =>
+          '<div class="tf-poll-list-item" data-action="open-poll" data-id="' + p.id + '">' +
+            '<div><div class="tf-poll-title">' + escapeHtml(p.title) + '</div>' +
+            '<div class="tf-poll-meta">' + new Date(p.createdAt).toLocaleDateString('de-DE') + '</div></div>' +
+            '<span class="tf-poll-code">' + p.id + '</span></div>'
+        ).join('')
+      : '<div class="tf-empty">Noch keine Umfragen vorhanden.</div>';
+
+    const notifSupport = typeof Notification !== 'undefined';
+    const notifLabel = !notifSupport ? 'Nicht unterstützt'
+      : state.notifPermission === 'granted' ? 'Aktiviert ✓'
+      : state.notifPermission === 'denied' ? 'Blockiert (in Browser-Einstellungen ändern)'
+      : 'Aktivieren';
+
+    root.innerHTML =
+      '<div class="tf-flapboard">' + flapBoard("WANN PASST'S") + '</div>' +
+      '<div class="tf-tagline">Termine vorschlagen. Abstimmen. Fertig.</div>' +
+      '<div class="tf-card"><h2>Neue Umfrage erstellen</h2>' +
+        '<p class="tf-sub">Schlage mehrere Termine vor und lade andere zur Abstimmung ein.</p>' +
+        '<button class="tf-btn-primary" data-action="goto-create">+ Umfrage erstellen</button></div>' +
+      '<div class="tf-card"><h2>Umfrage per Code öffnen</h2>' +
+        '<p class="tf-sub">Code von jemand anderem erhalten? Hier eingeben.</p>' +
+        '<div class="tf-row"><input id="tf-join-code" placeholder="z.B. A1B2C3" maxlength="8" style="text-transform:uppercase" />' +
+        '<button class="tf-btn-secondary" data-action="join-code">Öffnen</button></div>' +
+        (state.error ? '<div class="tf-error">' + escapeHtml(state.error) + '</div>' : '') + '</div>' +
+      '<div class="tf-card"><h2>Zuletzt erstellt</h2>' + listHtml + '</div>' +
+      '<div class="tf-card"><h2>Browser-Benachrichtigungen</h2>' +
+        '<div class="tf-toggle-row"><div><div class="tf-toggle-label">Status</div><div class="tf-toggle-sub">' + notifLabel + '</div></div>' +
+        (notifSupport && state.notifPermission !== 'granted' ? '<button class="tf-btn-secondary" data-action="req-notif" style="padding:6px 10px;font-size:12px">Erlauben</button>' : '') +
+        '</div></div>';
+
+    root.querySelector('[data-action="goto-create"]').onclick = () => {
+      state.view = 'create';
+      state.createOptions = [{ id: uid(), date: '', time: '' }, { id: uid(), date: '', time: '' }];
+      state.createNotify = { email: false, teams: false, push: true };
+      state.createEmails = ''; state.createTeamsWebhook = '';
+      state._title = ''; state._desc = ''; state._creator = state.myName;
+      state.error = ''; render();
+    };
+    root.querySelector('[data-action="join-code"]').onclick = () => {
+      const code = root.querySelector('#tf-join-code').value.trim().toUpperCase();
+      if (code) openPoll(code);
+    };
+    root.querySelectorAll('[data-action="open-poll"]').forEach(el => { el.onclick = () => openPoll(el.getAttribute('data-id')); });
+    const notifBtn = root.querySelector('[data-action="req-notif"]');
+    if (notifBtn) notifBtn.onclick = requestNotifPermission;
+  }
+
+  function renderCreate() {
+    const optsHtml = state.createOptions.map(o =>
+      '<div class="tf-option-row" data-opt-id="' + o.id + '">' +
+        '<input type="date" data-field="date" data-id="' + o.id + '" value="' + o.date + '" />' +
+        '<input type="time" data-field="time" data-id="' + o.id + '" value="' + o.time + '" />' +
+        '<button class="tf-btn-icon" data-action="remove-option" data-id="' + o.id + '" aria-label="Termin entfernen">✕</button></div>'
+    ).join('');
+    const n = state.createNotify;
+
+    root.innerHTML =
+      '<button class="tf-back" data-action="back-home">← Zurück</button>' +
+      '<div class="tf-card"><h2>Neue Umfrage</h2>' +
+        '<div class="tf-field"><label class="tf-label">Titel</label><input id="tf-title" placeholder="z.B. Grillabend im Park" value="' + escapeHtml(state._title || '') + '" /></div>' +
+        '<div class="tf-field"><label class="tf-label">Beschreibung (optional)</label><textarea id="tf-desc" rows="2" placeholder="Weitere Infos für die Teilnehmer">' + escapeHtml(state._desc || '') + '</textarea></div>' +
+        '<div class="tf-field"><label class="tf-label">Dein Name</label><input id="tf-creator" placeholder="Wird als Ersteller angezeigt" value="' + escapeHtml(state._creator || '') + '" /></div>' +
+        '<div class="tf-field"><label class="tf-label">Terminvorschläge</label><div id="tf-options">' + optsHtml + '</div>' +
+        '<button class="tf-btn-secondary" data-action="add-option" style="margin-top:4px">+ Termin hinzufügen</button></div>' +
+        (state.error ? '<div class="tf-error">' + escapeHtml(state.error) + '</div>' : '') +
+        '<button class="tf-btn-primary" data-action="submit-create" style="margin-top:8px">Umfrage erstellen</button></div>' +
+      '<div class="tf-card"><h2>Benachrichtigungen</h2>' +
+        '<p class="tf-sub">Jeder Kanal lässt sich einzeln an- oder ausschalten.</p>' +
+        '<div class="tf-toggle-row"><div><div class="tf-toggle-label">Browser-Benachrichtigungen</div><div class="tf-toggle-sub">Live-Hinweis bei neuen Stimmen</div></div>' +
+        '<label class="tf-switch"><input type="checkbox" data-notify="push" ' + (n.push ? 'checked' : '') + '><span class="tf-switch-track"></span></label></div>' +
+        '<div class="tf-toggle-row"><div><div class="tf-toggle-label">E-Mail</div><div class="tf-toggle-sub">Einladung, Erinnerung, Abschlussmail</div></div>' +
+        '<label class="tf-switch"><input type="checkbox" data-notify="email" ' + (n.email ? 'checked' : '') + '><span class="tf-switch-track"></span></label></div>' +
+        (n.email ? '<div class="tf-field" style="margin-top:10px"><label class="tf-label">E-Mail-Adressen der Teilnehmer</label>' +
+          '<textarea id="tf-emails" rows="2" placeholder="anna@beispiel.de, ben@beispiel.de">' + escapeHtml(state.createEmails) + '</textarea>' +
+          '<div class="tf-hint">Kommagetrennt oder je eine pro Zeile.</div></div>' : '') +
+        '<div class="tf-toggle-row"><div><div class="tf-toggle-label">Microsoft Teams</div><div class="tf-toggle-sub">Meldung im Kanal</div></div>' +
+        '<label class="tf-switch"><input type="checkbox" data-notify="teams" ' + (n.teams ? 'checked' : '') + '><span class="tf-switch-track"></span></label></div>' +
+        (n.teams ? '<div class="tf-field" style="margin-top:10px"><label class="tf-label">Teams-Webhook-URL (optional, überschreibt Server-Standard)</label>' +
+          '<input id="tf-teams-webhook" placeholder="https://outlook.office.com/webhook/…" value="' + escapeHtml(state.createTeamsWebhook) + '" /></div>' : '') +
+        '</div>';
+
+    root.querySelector('[data-action="back-home"]').onclick = () => { state.view = 'home'; state.error = ''; render(); };
+    root.querySelector('[data-action="add-option"]').onclick = () => { readCreateForm(); state.createOptions.push({ id: uid(), date: '', time: '' }); render(); };
+    root.querySelectorAll('[data-action="remove-option"]').forEach(btn => btn.onclick = () => {
+      readCreateForm(); state.createOptions = state.createOptions.filter(o => o.id !== btn.getAttribute('data-id')); render();
+    });
+    root.querySelectorAll('[data-notify]').forEach(cb => cb.onchange = () => { readCreateForm(); state.createNotify[cb.getAttribute('data-notify')] = cb.checked; render(); });
+    root.querySelector('[data-action="submit-create"]').onclick = submitCreate;
+  }
+
+  function readCreateForm() {
+    const g = (sel) => root.querySelector(sel);
+    if (g('#tf-title')) state._title = g('#tf-title').value;
+    if (g('#tf-desc')) state._desc = g('#tf-desc').value;
+    if (g('#tf-creator')) state._creator = g('#tf-creator').value;
+    if (g('#tf-emails')) state.createEmails = g('#tf-emails').value;
+    if (g('#tf-teams-webhook')) state.createTeamsWebhook = g('#tf-teams-webhook').value;
+    root.querySelectorAll('#tf-options input').forEach(inp => {
+      const opt = state.createOptions.find(o => o.id === inp.getAttribute('data-id'));
+      if (opt) opt[inp.getAttribute('data-field')] = inp.value;
+    });
+  }
+
+  async function submitCreate() {
+    readCreateForm();
+    const title = (state._title || '').trim();
+    const creator = (state._creator || '').trim();
+    const validOptions = state.createOptions.filter(o => o.date);
+    if (!title) { state.error = 'Bitte einen Titel eingeben.'; render(); return; }
+    if (!creator) { state.error = 'Bitte deinen Namen eingeben.'; render(); return; }
+    if (validOptions.length < 1) { state.error = 'Bitte mindestens einen Termin mit Datum angeben.'; render(); return; }
+    state.error = '';
+    const btn = root.querySelector('[data-action="submit-create"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Wird erstellt …'; }
+
+    const id = uid();
+    const options = validOptions.map(o => ({ id: o.id, date: o.date, time: o.time }));
+    const emails = state.createEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean);
+    const ok = await apiPost('/api/polls', {
+      id, title, description: (state._desc || '').trim(), creator, options,
+      emails, notify: state.createNotify, teamsWebhookUrl: state.createTeamsWebhook
+    });
+    if (!ok) { state.error = 'Umfrage konnte nicht erstellt werden. Serververbindung prüfen.'; if (btn) { btn.disabled = false; btn.textContent = 'Umfrage erstellen'; } render(); return; }
+
+    state.myName = creator; localStorage.setItem('tf-my-name', creator);
+    openPoll(id);
+  }
+
+  async function openPoll(id) {
+    state.view = 'poll'; state.loading = true; state.currentPollId = id; state.error = ''; state.orgMsg = ''; render();
+    const poll = await apiGet('/api/polls/' + id);
+    if (!poll) {
+      state.loading = false; state.view = 'home'; state.error = 'Keine Umfrage mit diesem Code gefunden.';
+      state.pollIndex = await apiGet('/api/polls') || []; render(); return;
+    }
+    state.currentPoll = poll;
+    state.votes = await apiGet('/api/polls/' + id + '/votes') || [];
+    knownVoteKeys = new Set(state.votes.map(v => sanitizeKey(v.name)));
+    const mine = state.votes.find(v => sanitizeKey(v.name) === sanitizeKey(state.myName));
+    state.myChoices = mine ? { ...mine.choices } : {};
+    state.loading = false; render(); startLive(id);
+  }
+
+  function computeCounts(poll, votes) {
+    const counts = {};
+    poll.options.forEach(o => counts[o.id] = { yes: 0, no: 0 });
+    votes.forEach(v => poll.options.forEach(o => {
+      if (v.choices[o.id] === 'yes') counts[o.id].yes++;
+      else if (v.choices[o.id] === 'no') counts[o.id].no++;
+    }));
+    return counts;
+  }
+
+  function renderPoll() {
+    if (state.loading) { root.innerHTML = '<div class="tf-loading">Umfrage wird geladen …</div>'; return; }
+    const poll = state.currentPoll;
+    if (!poll) { root.innerHTML = '<div class="tf-loading">Nicht gefunden.</div>'; return; }
+
+    const counts = computeCounts(poll, state.votes);
+    const maxYes = Math.max(0, ...poll.options.map(o => counts[o.id].yes));
+    const finalOption = poll.finalizedOptionId ? poll.options.find(o => o.id === poll.finalizedOptionId) : null;
+
+    const voteRows = poll.options.map(o => {
+      const isYes = state.myChoices[o.id] === 'yes', isNo = state.myChoices[o.id] === 'no';
+      return '<tr><td class="tf-date-cell">' + fmtOption(o) + '</td><td>' +
+        '<button class="tf-vote-toggle yes' + (isYes ? ' active' : '') + '" data-action="vote" data-opt="' + o.id + '" data-val="yes" aria-label="Ja">✓</button>' +
+        '<button class="tf-vote-toggle no' + (isNo ? ' active' : '') + '" data-action="vote" data-opt="' + o.id + '" data-val="no" aria-label="Nein">✕</button></td></tr>';
+    }).join('');
+
+    const resultRows = poll.options.map(o => {
+      const c = counts[o.id], isBest = c.yes === maxYes && maxYes > 0;
+      const cells = state.votes.map(v => {
+        const ch = v.choices[o.id];
+        if (ch === 'yes') return '<td><span class="tf-flap-cell yes">✓</span></td>';
+        if (ch === 'no') return '<td><span class="tf-flap-cell no">✕</span></td>';
+        return '<td></td>';
+      }).join('');
+      return '<tr class="' + (isBest ? 'tf-best-row' : '') + '"><td class="tf-date-cell">' + fmtOption(o) + (isBest ? '<span class="tf-best-badge">TOP</span>' : '') + '</td>' + cells + '<td style="color:var(--muted)">' + c.yes + ' / ' + state.votes.length + '</td></tr>';
+    }).join('');
+
+    const participantHeaders = state.votes.map(v => '<th class="tf-participant-col">' + escapeHtml(v.name) + '</th>').join('');
+    const optionSelectHtml = poll.options.map(o => '<option value="' + o.id + '">' + fmtOption(o) + '</option>').join('');
+
+    root.innerHTML =
+      '<button class="tf-back" data-action="back-home">← Alle Umfragen</button>' +
+      (finalOption ? '<div class="tf-final-banner">✅ Termin steht fest: ' + fmtOption(finalOption) + '</div>' : '') +
+      '<div class="tf-card"><div class="tf-status-row"><h2 style="font-size:20px">' + escapeHtml(poll.title) + '</h2>' +
+        '<span class="tf-badge" id="tf-status-badge"><span class="dot"></span>…</span></div>' +
+        (poll.description ? '<p class="tf-sub" style="margin-top:8px">' + escapeHtml(poll.description) + '</p>' : '') +
+        '<p class="tf-sub">Erstellt von ' + escapeHtml(poll.creator) + '</p>' +
+        '<div class="tf-code-display" data-action="copy-code" title="Klicken zum Kopieren">' + poll.id + '</div>' +
+        '<div class="tf-code-hint">Diesen Code an andere weitergeben, damit sie hier mit abstimmen können.</div></div>' +
+      '<div class="tf-card"><h2>Deine Stimme</h2>' +
+        '<div class="tf-field" style="margin-top:12px"><label class="tf-label">Dein Name</label><input id="tf-vote-name" placeholder="Name eingeben" value="' + escapeHtml(state.myName) + '" /></div>' +
+        '<table class="tf-grid"><tbody>' + voteRows + '</tbody></table>' +
+        (state.error ? '<div class="tf-error">' + escapeHtml(state.error) + '</div>' : '') +
+        '<button class="tf-btn-primary" data-action="submit-vote" style="margin-top:14px">Abstimmung speichern</button></div>' +
+      '<div class="tf-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">' +
+        '<h2>Ergebnisse (' + state.votes.length + ' Teilnehmer)</h2>' +
+        '<button class="tf-btn-secondary" data-action="refresh" style="padding:6px 10px;font-size:12px">↻ Aktualisieren</button></div>' +
+        (state.votes.length ? '<div style="overflow-x:auto"><table class="tf-grid"><thead><tr><th style="text-align:left">Termin</th>' + participantHeaders + '<th>Ja</th></tr></thead><tbody>' + resultRows + '</tbody></table></div>' : '<div class="tf-empty">Noch keine Stimmen abgegeben.</div>') + '</div>' +
+      '<div class="tf-card"><h2>Für Organisatoren</h2>' +
+        '<button class="tf-btn-secondary" data-action="remind">Erinnerung an Nicht-Abstimmende senden</button>' +
+        '<div class="tf-field" style="margin-top:14px"><label class="tf-label">Termin final festlegen</label>' +
+        '<div class="tf-row"><select id="tf-finalize-select" style="flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--paper);border-radius:6px;padding:10px 12px;font-size:14px"><option value="">Termin wählen …</option>' + optionSelectHtml + '</select>' +
+        '<button class="tf-btn-secondary" data-action="finalize">Abschließen</button></div></div>' +
+        (state.orgMsg ? '<div class="tf-ok">' + escapeHtml(state.orgMsg) + '</div>' : '') + '</div>';
+
+    root.querySelector('[data-action="back-home"]').onclick = async () => { stopLive(); state.view = 'home'; state.error = ''; state.pollIndex = await apiGet('/api/polls') || []; render(); };
+    root.querySelector('[data-action="copy-code"]').onclick = (e) => {
+      navigator.clipboard && navigator.clipboard.writeText(state.currentPoll.id).catch(() => {});
+      const el = e.currentTarget, original = el.textContent;
+      el.textContent = 'Kopiert!'; setTimeout(() => { el.textContent = original; }, 1200);
+    };
+    root.querySelectorAll('[data-action="vote"]').forEach(btn => btn.onclick = () => {
+      const opt = btn.getAttribute('data-opt'), val = btn.getAttribute('data-val');
+      if (state.myChoices[opt] === val) delete state.myChoices[opt]; else state.myChoices[opt] = val;
+      render();
+    });
+    root.querySelector('[data-action="submit-vote"]').onclick = submitVote;
+    root.querySelector('[data-action="refresh"]').onclick = () => refreshPollView(false);
+    root.querySelector('[data-action="remind"]').onclick = async (e) => {
+      e.target.disabled = true;
+      const r = await apiPost('/api/polls/' + state.currentPollId + '/remind', {});
+      state.orgMsg = r ? ('Erinnerung an ' + r.sent + ' Person(en) gesendet.') : 'Erinnerung konnte nicht gesendet werden.';
+      render();
+    };
+    root.querySelector('[data-action="finalize"]').onclick = async () => {
+      const sel = root.querySelector('#tf-finalize-select'), optionId = sel ? sel.value : '';
+      if (!optionId) { state.orgMsg = 'Bitte zuerst einen Termin auswählen.'; render(); return; }
+      const r = await apiPost('/api/polls/' + state.currentPollId + '/finalize', { optionId });
+      state.orgMsg = r ? 'Termin final festgelegt, Beteiligte wurden informiert.' : 'Konnte nicht abgeschlossen werden.';
+      if (r) state.currentPoll.finalizedOptionId = optionId;
+      render();
+    };
+    renderStatusBadgeOnly();
+  }
+
+  async function submitVote() {
+    const name = (root.querySelector('#tf-vote-name').value || '').trim();
+    if (!name) { state.error = 'Bitte deinen Namen eingeben.'; render(); return; }
+    if (Object.keys(state.myChoices).length === 0) { state.error = 'Bitte für mindestens einen Termin abstimmen.'; render(); return; }
+    state.error = ''; state.myName = name; localStorage.setItem('tf-my-name', name);
+    const btn = root.querySelector('[data-action="submit-vote"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Wird gespeichert …'; }
+    const ok = await apiPost('/api/polls/' + state.currentPollId + '/votes', { name, choices: state.myChoices });
+    if (!ok) { state.error = 'Stimme konnte nicht gespeichert werden.'; render(); return; }
+    await refreshPollView(true);
+  }
+
+  (async function init() {
+    state.pollIndex = await apiGet('/api/polls') || [];
+    render();
+  })();
+})();
+</script>
+</body>
+</html>

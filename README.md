@@ -1,5 +1,20 @@
 # Terminfinder-Backend
 
+Dieser Server kann auf zwei Arten genutzt werden:
+
+1. **Zusammen mit dem Claude-Artefakt** (claude.ai): liefert nur die Benachrichtigungen
+   (E-Mail, Teams, Live-Updates) dazu, während das Tool selbst bei Anthropic läuft.
+2. **Komplett eigenständig**: Der Server liefert jetzt auch die Weboberfläche selbst mit
+   aus (Ordner `public/`). Damit läuft das gesamte Tool auf deinem eigenen Server –
+   ganz ohne claude.ai, ganz ohne Anthropic-Speicherung, unter deiner eigenen Render-URL
+   (oder später sogar einer eigenen Domain).
+
+Öffne dazu nach dem Deployment einfach die Server-URL selbst im Browser
+(z.B. `https://terminfinder-backend-xxxx.onrender.com`, ohne `/api/...` dahinter) –
+dort läuft jetzt die komplette Umfrage-Seite, komplett eigenständig.
+
+---
+
 Kleiner Node.js/Express-Server, der dem Terminfinder-Frontend drei Dinge liefert,
 die ein reines Browser-Artefakt nicht kann:
 
@@ -9,6 +24,7 @@ die ein reines Browser-Artefakt nicht kann:
 
 Das Frontend funktioniert auch **ohne** dieses Backend weiter (lokale Speicherung +
 Polling). Das Backend ist eine optionale Ergänzung für echte Benachrichtigungen.
+
 
 ## 1. Lokal starten
 
