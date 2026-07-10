@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wann passt's? – Terminfinder</title>
+<title>TimeBridge – Terminfinder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -47,20 +47,29 @@
   .tf-lang-btn.active { opacity: 1; filter: none; border-color: var(--amber); }
   .tf-lang-btn:hover { opacity: 1; }
 
-  .tf-header { display: flex; flex-direction: column; align-items: center; padding: 6px 0 30px; }
-  .tf-cal-icon { width: 64px; height: 64px; margin-bottom: 10px; }
-  .tf-cal-today {
-    animation: tf-pulse 2.6s ease-in-out infinite;
+  .tf-header { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 6px 0 30px; }
+  .tf-logo-icon { width: 56px; height: 44px; flex-shrink: 0; }
+  .tf-logo-check {
+    animation: tf-pulse 2.8s ease-in-out infinite;
     transform-origin: center;
+  }
+  .tf-logo-arc {
+    stroke-dasharray: 4 4;
+    animation: tf-flow 6s linear infinite;
   }
   @keyframes tf-pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.55; transform: scale(0.82); }
+    50% { opacity: 0.6; transform: scale(0.85); }
+  }
+  @keyframes tf-flow {
+    to { stroke-dashoffset: -32; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .tf-cal-today { animation: none; }
+    .tf-logo-check, .tf-logo-arc { animation: none; }
   }
-  .tf-appname { font-size: 15px; font-weight: 500; color: var(--muted); letter-spacing: 0.02em; }
+  .tf-wordmark { font-family: 'Space Grotesk', sans-serif; font-size: 30px; white-space: nowrap; }
+  .tf-wordmark .tf-w1 { color: var(--paper); font-weight: 500; }
+  .tf-wordmark .tf-w2 { color: var(--amber); font-weight: 700; }
 
   .tf-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
   .tf-card h2 { font-size: 17px; font-weight: 500; margin-bottom: 4px; }
@@ -284,14 +293,17 @@
   }
 
   const CAL_ICON =
-    '<svg class="tf-cal-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kalender">' +
-      '<rect x="8" y="12" width="48" height="44" rx="6" fill="none" stroke="var(--amber)" stroke-width="2.5"/>' +
-      '<line x1="8" y1="24" x2="56" y2="24" stroke="var(--line)" stroke-width="2.5"/>' +
-      '<line x1="18" y1="8" x2="18" y2="18" stroke="var(--amber)" stroke-width="2.5" stroke-linecap="round"/>' +
-      '<line x1="46" y1="8" x2="46" y2="18" stroke="var(--amber)" stroke-width="2.5" stroke-linecap="round"/>' +
-      '<circle class="tf-cal-today" cx="32" cy="40" r="7" fill="var(--amber)"/>' +
-      '<circle cx="18" cy="33" r="2.4" fill="var(--line)"/><circle cx="46" cy="33" r="2.4" fill="var(--line)"/>' +
-      '<circle cx="18" cy="47" r="2.4" fill="var(--line)"/><circle cx="46" cy="47" r="2.4" fill="var(--line)"/>' +
+    '<svg class="tf-logo-icon" viewBox="0 0 100 78" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="TimeBridge Logo">' +
+      '<line x1="10" y1="10" x2="34" y2="40" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>' +
+      '<line x1="10" y1="10" x2="66" y2="40" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>' +
+      '<line x1="90" y1="10" x2="66" y2="40" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>' +
+      '<line x1="90" y1="10" x2="34" y2="40" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>' +
+      '<path class="tf-logo-arc" d="M 22 40 A 28 28 0 0 0 78 40" fill="none" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>' +
+      '<circle cx="10" cy="10" r="6" fill="var(--ink)" stroke="var(--amber)" stroke-width="3"/>' +
+      '<circle cx="90" cy="10" r="6" fill="var(--ink)" stroke="var(--amber)" stroke-width="3"/>' +
+      '<circle cx="34" cy="40" r="6" fill="var(--ink)" stroke="var(--amber)" stroke-width="3"/>' +
+      '<circle cx="66" cy="40" r="6" fill="var(--ink)" stroke="var(--amber)" stroke-width="3"/>' +
+      '<path class="tf-logo-check" d="M 40 38 L 47 46 L 61 30" fill="none" stroke="#8fe0b4" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>' +
     '</svg>';
 
   function stopLive() {
@@ -362,25 +374,15 @@
         ).join('')
       : '<div class="tf-empty">' + s.recentEmpty + '</div>';
 
-    const notifSupport = typeof Notification !== 'undefined';
-    const notifLabel = !notifSupport ? s.notifUnsupported
-      : state.notifPermission === 'granted' ? s.notifGranted
-      : state.notifPermission === 'denied' ? s.notifDenied
-      : s.notifEnable;
-
     root.innerHTML =
-      '<div class="tf-header">' + CAL_ICON + '<div class="tf-appname">' + s.appName + '</div></div>' +
+      '<div class="tf-header">' + CAL_ICON + '<div class="tf-wordmark"><span class="tf-w1">Time</span><span class="tf-w2">Bridge</span></div></div>' +
       '<div class="tf-card"><h2>' + s.createTitle + '</h2><p class="tf-sub">' + s.createSub + '</p>' +
         '<button class="tf-btn-primary" data-action="goto-create">' + s.createBtn + '</button></div>' +
       '<div class="tf-card"><h2>' + s.joinTitle + '</h2><p class="tf-sub">' + s.joinSub + '</p>' +
         '<div class="tf-row"><input id="tf-join-code" placeholder="' + s.joinPlaceholder + '" maxlength="8" style="text-transform:uppercase" />' +
         '<button class="tf-btn-secondary" data-action="join-code">' + s.joinBtn + '</button></div>' +
         (state.error ? '<div class="tf-error">' + escapeHtml(state.error) + '</div>' : '') + '</div>' +
-      '<div class="tf-card"><h2>' + s.recentTitle + '</h2>' + listHtml + '</div>' +
-      '<div class="tf-card"><h2>' + s.notifTitle + '</h2>' +
-        '<div class="tf-toggle-row"><div><div class="tf-toggle-label">' + notifLabel + '</div></div>' +
-        (notifSupport && state.notifPermission !== 'granted' ? '<button class="tf-btn-secondary" data-action="req-notif" style="padding:6px 10px;font-size:12px">' + s.notifEnable + '</button>' : '') +
-        '</div></div>';
+      '<div class="tf-card"><h2>' + s.recentTitle + '</h2>' + listHtml + '</div>';
 
     root.querySelector('[data-action="goto-create"]').onclick = () => {
       state.view = 'create';
@@ -395,8 +397,6 @@
       if (code) openPoll(code);
     };
     root.querySelectorAll('[data-action="open-poll"]').forEach(el => { el.onclick = () => openPoll(el.getAttribute('data-id')); });
-    const notifBtn = root.querySelector('[data-action="req-notif"]');
-    if (notifBtn) notifBtn.onclick = requestNotifPermission;
   }
 
   function renderCreate() {
