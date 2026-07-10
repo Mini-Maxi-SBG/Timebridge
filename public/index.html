@@ -28,7 +28,7 @@
     margin: 0;
     padding: 28px 16px 60px;
   }
-  #tf-root { max-width: 720px; margin: 0 auto; }
+  #tf-root { max-width: 720px; margin: 0 auto; position: relative; }
   h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; margin: 0; }
   button { font-family: 'Inter', sans-serif; cursor: pointer; border-radius: 6px; }
   input, textarea {
@@ -38,15 +38,29 @@
   input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; }
   ::placeholder { color: var(--muted); }
 
-  .tf-flapboard { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-bottom: 6px; }
-  .tf-flap {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
-    padding: 8px 4px; min-width: 26px; text-align: center;
-    font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 20px;
-    color: var(--amber); box-shadow: inset 0 -1px 0 var(--line);
+  .tf-lang-switch { position: absolute; top: 0; right: 16px; display: flex; gap: 6px; }
+  .tf-lang-btn {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    width: 34px; height: 30px; font-size: 16px; display: flex; align-items: center; justify-content: center;
+    opacity: 0.55; filter: grayscale(40%);
   }
-  .tf-flap.space { background: transparent; border-color: transparent; min-width: 12px; }
-  .tf-tagline { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+  .tf-lang-btn.active { opacity: 1; filter: none; border-color: var(--amber); }
+  .tf-lang-btn:hover { opacity: 1; }
+
+  .tf-header { display: flex; flex-direction: column; align-items: center; padding: 6px 0 30px; }
+  .tf-cal-icon { width: 64px; height: 64px; margin-bottom: 10px; }
+  .tf-cal-today {
+    animation: tf-pulse 2.6s ease-in-out infinite;
+    transform-origin: center;
+  }
+  @keyframes tf-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.82); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tf-cal-today { animation: none; }
+  }
+  .tf-appname { font-size: 15px; font-weight: 500; color: var(--muted); letter-spacing: 0.02em; }
 
   .tf-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
   .tf-card h2 { font-size: 17px; font-weight: 500; margin-bottom: 4px; }
@@ -132,12 +146,95 @@
 </style>
 </head>
 <body>
-<div id="tf-root"><div id="tf-app"></div></div>
+<div id="tf-root">
+  <div class="tf-lang-switch" id="tf-lang-switch">
+    <button class="tf-lang-btn" data-lang="de" aria-label="Deutsch">🇩🇪</button>
+    <button class="tf-lang-btn" data-lang="en" aria-label="English">🇬🇧</button>
+  </div>
+  <div id="tf-app"></div>
+</div>
 
 <script>
 (function() {
   const root = document.getElementById('tf-app');
   const POLL_INTERVAL_MS = 8000;
+
+  const STR = {
+    de: {
+      appName: "Wann passt's?",
+      createTitle: 'Neue Umfrage erstellen', createSub: 'Schlage mehrere Termine vor und lade andere zur Abstimmung ein.', createBtn: '+ Umfrage erstellen',
+      joinTitle: 'Umfrage per Code öffnen', joinSub: 'Code von jemand anderem erhalten? Hier eingeben.', joinPlaceholder: 'z.B. A1B2C3', joinBtn: 'Öffnen',
+      recentTitle: 'Zuletzt erstellt', recentEmpty: 'Noch keine Umfragen vorhanden.',
+      notifTitle: 'Browser-Benachrichtigungen', notifEnable: 'Erlauben', notifGranted: 'Aktiviert ✓', notifDenied: 'Blockiert (in Browser-Einstellungen ändern)', notifUnsupported: 'Nicht unterstützt',
+      pollNotFound: 'Keine Umfrage mit diesem Code gefunden.',
+      back: '← Zurück', backAll: '← Alle Umfragen',
+      newPollTitle: 'Neue Umfrage',
+      titleLabel: 'Titel', titlePlaceholder: "z.B. Grillabend im Park",
+      descLabel: 'Beschreibung (optional)', descPlaceholder: 'Weitere Infos für die Teilnehmer',
+      nameLabel: 'Dein Name', namePlaceholder: 'Wird als Ersteller angezeigt',
+      optionsLabel: 'Terminvorschläge', addOptionBtn: '+ Termin hinzufügen',
+      submitCreateBtn: 'Umfrage erstellen', creatingBtn: 'Wird erstellt …',
+      notifSectionTitle: 'Benachrichtigungen', notifSectionSub: 'Jeder Kanal lässt sich einzeln an- oder ausschalten.',
+      pushLabel: 'Browser-Benachrichtigungen', pushSub: 'Live-Hinweis bei neuen Stimmen',
+      emailLabel: 'E-Mail', emailSub: 'Einladung, Erinnerung, Abschlussmail',
+      emailsLabel: 'E-Mail-Adressen der Teilnehmer', emailsPlaceholder: 'anna@beispiel.de, ben@beispiel.de', emailsHint: 'Kommagetrennt oder je eine pro Zeile.',
+      teamsLabel: 'Microsoft Teams', teamsSub: 'Meldung im Kanal',
+      teamsWebhookLabel: 'Teams-Webhook-URL (optional, überschreibt Server-Standard)',
+      errTitleRequired: 'Bitte einen Titel eingeben.', errNameRequired: 'Bitte deinen Namen eingeben.', errDateRequired: 'Bitte mindestens einen Termin mit Datum angeben.',
+      errCreateFailed: 'Umfrage konnte nicht erstellt werden. Serververbindung prüfen.',
+      errVoteRequired: 'Bitte deinen Namen eingeben.', errChoiceRequired: 'Bitte für mindestens einen Termin abstimmen.', errVoteSaveFailed: 'Stimme konnte nicht gespeichert werden.',
+      createdBy: 'Erstellt von', codeHint: 'Diesen Code an andere weitergeben, damit sie hier mit abstimmen können.',
+      copyLinkBtn: "🔗 Direkten Link zu dieser Umfrage kopieren", linkCopied: '✓ Link kopiert', codeCopied: 'Kopiert!',
+      yourVoteTitle: 'Deine Stimme', saveVoteBtn: 'Abstimmung speichern', savingVoteBtn: 'Wird gespeichert …',
+      resultsTitle: (n) => `Ergebnisse (${n} Teilnehmer)`, refreshBtn: '↻ Aktualisieren', noVotesYet: 'Noch keine Stimmen abgegeben.',
+      dateCol: 'Termin', yesCol: 'Ja',
+      organizerTitle: 'Für Organisatoren', remindBtn: 'Erinnerung an Nicht-Abstimmende senden',
+      finalizeLabel: 'Termin final festlegen', finalizeSelectPlaceholder: 'Termin wählen …', finalizeBtn: 'Abschließen',
+      finalBanner: (d) => `✅ Termin steht fest: ${d}`,
+      remindSent: (n) => `Erinnerung an ${n} Person(en) gesendet.`, remindFailed: 'Erinnerung konnte nicht gesendet werden.',
+      finalizeChooseFirst: 'Bitte zuerst einen Termin auswählen.', finalizeOk: 'Termin final festgelegt, Beteiligte wurden informiert.', finalizeFailed: 'Konnte nicht abgeschlossen werden.',
+      liveLabel: 'Live', pollLabel: 'Aktualisiert alle 8s', localLabel: 'Lokal',
+      newVoteTitle: 'Neue Stimme(n) eingegangen', newVoteBody: (names) => `${names} hat/haben abgestimmt.`,
+      dateLocale: 'de-DE'
+    },
+    en: {
+      appName: "When works?",
+      createTitle: 'Create a new poll', createSub: 'Suggest a few dates and invite others to vote.', createBtn: '+ Create poll',
+      joinTitle: 'Open a poll by code', joinSub: 'Got a code from someone else? Enter it here.', joinPlaceholder: 'e.g. A1B2C3', joinBtn: 'Open',
+      recentTitle: 'Recently created', recentEmpty: 'No polls yet.',
+      notifTitle: 'Browser notifications', notifEnable: 'Enable', notifGranted: 'Enabled ✓', notifDenied: 'Blocked (change in browser settings)', notifUnsupported: 'Not supported',
+      pollNotFound: 'No poll found with that code.',
+      back: '← Back', backAll: '← All polls',
+      newPollTitle: 'New poll',
+      titleLabel: 'Title', titlePlaceholder: 'e.g. Team barbecue in the park',
+      descLabel: 'Description (optional)', descPlaceholder: 'Extra info for participants',
+      nameLabel: 'Your name', namePlaceholder: 'Shown as the organizer',
+      optionsLabel: 'Suggested dates', addOptionBtn: '+ Add date',
+      submitCreateBtn: 'Create poll', creatingBtn: 'Creating …',
+      notifSectionTitle: 'Notifications', notifSectionSub: 'Each channel can be switched on or off individually.',
+      pushLabel: 'Browser notifications', pushSub: 'Live alert when new votes come in',
+      emailLabel: 'Email', emailSub: 'Invite, reminder, final confirmation',
+      emailsLabel: 'Participant email addresses', emailsPlaceholder: 'anna@example.com, ben@example.com', emailsHint: 'Comma-separated or one per line.',
+      teamsLabel: 'Microsoft Teams', teamsSub: 'Post updates to the channel',
+      teamsWebhookLabel: 'Teams webhook URL (optional, overrides server default)',
+      errTitleRequired: 'Please enter a title.', errNameRequired: 'Please enter your name.', errDateRequired: 'Please add at least one date.',
+      errCreateFailed: 'Could not create the poll. Check the server connection.',
+      errVoteRequired: 'Please enter your name.', errChoiceRequired: 'Please vote on at least one date.', errVoteSaveFailed: 'Could not save your vote.',
+      createdBy: 'Created by', codeHint: 'Share this code with others so they can vote here too.',
+      copyLinkBtn: '🔗 Copy direct link to this poll', linkCopied: '✓ Link copied', codeCopied: 'Copied!',
+      yourVoteTitle: 'Your vote', saveVoteBtn: 'Save vote', savingVoteBtn: 'Saving …',
+      resultsTitle: (n) => `Results (${n} participants)`, refreshBtn: '↻ Refresh', noVotesYet: 'No votes yet.',
+      dateCol: 'Date', yesCol: 'Yes',
+      organizerTitle: 'For organizers', remindBtn: 'Send reminder to non-voters',
+      finalizeLabel: 'Finalize the date', finalizeSelectPlaceholder: 'Choose a date …', finalizeBtn: 'Finalize',
+      finalBanner: (d) => `✅ Date confirmed: ${d}`,
+      remindSent: (n) => `Reminder sent to ${n} people.`, remindFailed: 'Could not send reminder.',
+      finalizeChooseFirst: 'Please choose a date first.', finalizeOk: 'Date finalized, participants notified.', finalizeFailed: 'Could not finalize.',
+      liveLabel: 'Live', pollLabel: 'Refreshes every 8s', localLabel: 'Local',
+      newVoteTitle: 'New vote(s) received', newVoteBody: (names) => `${names} voted.`,
+      dateLocale: 'en-GB'
+    }
+  };
 
   const state = {
     view: 'home', pollIndex: [], createOptions: [],
@@ -147,17 +244,26 @@
     myName: localStorage.getItem('tf-my-name') || '',
     myChoices: {}, error: '', loading: false, liveMode: 'none',
     notifPermission: (typeof Notification !== 'undefined') ? Notification.permission : 'unsupported',
-    orgMsg: ''
+    orgMsg: '',
+    lang: localStorage.getItem('tf-lang') || ((navigator.language || '').toLowerCase().startsWith('de') ? 'de' : 'en')
   };
+  if (!STR[state.lang]) state.lang = 'de';
   let eventSource = null, pollTimer = null, knownVoteKeys = new Set();
+
+  function t() { return STR[state.lang]; }
+  function setLang(l) { state.lang = l; localStorage.setItem('tf-lang', l); document.documentElement.lang = l; renderLangSwitch(); render(); }
+  function renderLangSwitch() {
+    document.querySelectorAll('.tf-lang-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-lang') === state.lang);
+    });
+  }
+  document.querySelectorAll('.tf-lang-btn').forEach(btn => btn.onclick = () => setLang(btn.getAttribute('data-lang')));
+  renderLangSwitch();
 
   function uid() { return Math.random().toString(36).slice(2, 8).toUpperCase(); }
   function getVoterId() {
     let id = localStorage.getItem('tf-voter-id');
-    if (!id) {
-      id = (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2)));
-      localStorage.setItem('tf-voter-id', id);
-    }
+    if (!id) { id = (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2))); localStorage.setItem('tf-voter-id', id); }
     return id;
   }
   const voterId = getVoterId();
@@ -165,23 +271,28 @@
   function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
   async function api(path, opts) {
-    try {
-      const res = await fetch(path, opts);
-      if (!res.ok) return null;
-      return await res.json();
-    } catch (e) { console.error('API-Aufruf fehlgeschlagen', path, e); return null; }
+    try { const res = await fetch(path, opts); if (!res.ok) return null; return await res.json(); }
+    catch (e) { console.error('API-Aufruf fehlgeschlagen', path, e); return null; }
   }
   const apiGet = (p) => api(p);
   const apiPost = (p, body) => api(p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
 
   function fmtOption(opt) {
     const d = new Date(opt.date + 'T' + (opt.time || '00:00'));
-    const dateStr = d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
-    return opt.time ? dateStr + ', ' + opt.time + ' Uhr' : dateStr;
+    const dateStr = d.toLocaleDateString(t().dateLocale, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+    return opt.time ? dateStr + (state.lang === 'de' ? ', ' + opt.time + ' Uhr' : ', ' + opt.time) : dateStr;
   }
-  function flapBoard(text) {
-    return text.toUpperCase().split('').map(ch => ch === ' ' ? '<div class="tf-flap space"></div>' : '<div class="tf-flap">' + ch + '</div>').join('');
-  }
+
+  const CAL_ICON =
+    '<svg class="tf-cal-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kalender">' +
+      '<rect x="8" y="12" width="48" height="44" rx="6" fill="none" stroke="var(--amber)" stroke-width="2.5"/>' +
+      '<line x1="8" y1="24" x2="56" y2="24" stroke="var(--line)" stroke-width="2.5"/>' +
+      '<line x1="18" y1="8" x2="18" y2="18" stroke="var(--amber)" stroke-width="2.5" stroke-linecap="round"/>' +
+      '<line x1="46" y1="8" x2="46" y2="18" stroke="var(--amber)" stroke-width="2.5" stroke-linecap="round"/>' +
+      '<circle class="tf-cal-today" cx="32" cy="40" r="7" fill="var(--amber)"/>' +
+      '<circle cx="18" cy="33" r="2.4" fill="var(--line)"/><circle cx="46" cy="33" r="2.4" fill="var(--line)"/>' +
+      '<circle cx="18" cy="47" r="2.4" fill="var(--line)"/><circle cx="46" cy="47" r="2.4" fill="var(--line)"/>' +
+    '</svg>';
 
   function stopLive() {
     if (eventSource) { eventSource.close(); eventSource = null; }
@@ -207,9 +318,9 @@
   function renderStatusBadgeOnly() {
     const el = document.getElementById('tf-status-badge');
     if (!el) return;
-    if (state.liveMode === 'sse') { el.className = 'tf-badge live'; el.innerHTML = '<span class="dot"></span>Live'; }
-    else if (state.liveMode === 'poll') { el.className = 'tf-badge poll'; el.innerHTML = '<span class="dot"></span>Aktualisiert alle 8s'; }
-    else { el.className = 'tf-badge'; el.innerHTML = '<span class="dot"></span>Lokal'; }
+    if (state.liveMode === 'sse') { el.className = 'tf-badge live'; el.innerHTML = '<span class="dot"></span>' + t().liveLabel; }
+    else if (state.liveMode === 'poll') { el.className = 'tf-badge poll'; el.innerHTML = '<span class="dot"></span>' + t().pollLabel; }
+    else { el.className = 'tf-badge'; el.innerHTML = '<span class="dot"></span>' + t().localLabel; }
   }
   async function refreshPollView(fromLiveEvent) {
     if (state.view !== 'poll' || !state.currentPollId) return;
@@ -221,7 +332,7 @@
     state.votes = votes;
     const poll = await apiGet('/api/polls/' + state.currentPollId);
     if (poll) state.currentPoll.finalizedOptionId = poll.finalizedOptionId;
-    if (addedVoters.length && fromLiveEvent === false) notifyBrowser('Neue Stimme(n) eingegangen', addedVoters.join(', ') + ' hat/haben abgestimmt.');
+    if (addedVoters.length && fromLiveEvent === false) notifyBrowser(t().newVoteTitle, t().newVoteBody(addedVoters.join(', ')));
     render();
   }
   function notifyBrowser(title, body) {
@@ -241,36 +352,34 @@
   }
 
   function renderHome() {
+    const s = t();
     const listHtml = state.pollIndex.length
       ? state.pollIndex.slice(0, 8).map(p =>
           '<div class="tf-poll-list-item" data-action="open-poll" data-id="' + p.id + '">' +
             '<div><div class="tf-poll-title">' + escapeHtml(p.title) + '</div>' +
-            '<div class="tf-poll-meta">' + new Date(p.createdAt).toLocaleDateString('de-DE') + '</div></div>' +
+            '<div class="tf-poll-meta">' + new Date(p.createdAt).toLocaleDateString(s.dateLocale) + '</div></div>' +
             '<span class="tf-poll-code">' + p.id + '</span></div>'
         ).join('')
-      : '<div class="tf-empty">Noch keine Umfragen vorhanden.</div>';
+      : '<div class="tf-empty">' + s.recentEmpty + '</div>';
 
     const notifSupport = typeof Notification !== 'undefined';
-    const notifLabel = !notifSupport ? 'Nicht unterstützt'
-      : state.notifPermission === 'granted' ? 'Aktiviert ✓'
-      : state.notifPermission === 'denied' ? 'Blockiert (in Browser-Einstellungen ändern)'
-      : 'Aktivieren';
+    const notifLabel = !notifSupport ? s.notifUnsupported
+      : state.notifPermission === 'granted' ? s.notifGranted
+      : state.notifPermission === 'denied' ? s.notifDenied
+      : s.notifEnable;
 
     root.innerHTML =
-      '<div class="tf-flapboard">' + flapBoard("WANN PASST'S") + '</div>' +
-      '<div class="tf-tagline">Termine vorschlagen. Abstimmen. Fertig.</div>' +
-      '<div class="tf-card"><h2>Neue Umfrage erstellen</h2>' +
-        '<p class="tf-sub">Schlage mehrere Termine vor und lade andere zur Abstimmung ein.</p>' +
-        '<button class="tf-btn-primary" data-action="goto-create">+ Umfrage erstellen</button></div>' +
-      '<div class="tf-card"><h2>Umfrage per Code öffnen</h2>' +
-        '<p class="tf-sub">Code von jemand anderem erhalten? Hier eingeben.</p>' +
-        '<div class="tf-row"><input id="tf-join-code" placeholder="z.B. A1B2C3" maxlength="8" style="text-transform:uppercase" />' +
-        '<button class="tf-btn-secondary" data-action="join-code">Öffnen</button></div>' +
+      '<div class="tf-header">' + CAL_ICON + '<div class="tf-appname">' + s.appName + '</div></div>' +
+      '<div class="tf-card"><h2>' + s.createTitle + '</h2><p class="tf-sub">' + s.createSub + '</p>' +
+        '<button class="tf-btn-primary" data-action="goto-create">' + s.createBtn + '</button></div>' +
+      '<div class="tf-card"><h2>' + s.joinTitle + '</h2><p class="tf-sub">' + s.joinSub + '</p>' +
+        '<div class="tf-row"><input id="tf-join-code" placeholder="' + s.joinPlaceholder + '" maxlength="8" style="text-transform:uppercase" />' +
+        '<button class="tf-btn-secondary" data-action="join-code">' + s.joinBtn + '</button></div>' +
         (state.error ? '<div class="tf-error">' + escapeHtml(state.error) + '</div>' : '') + '</div>' +
-      '<div class="tf-card"><h2>Zuletzt erstellt</h2>' + listHtml + '</div>' +
-      '<div class="tf-card"><h2>Browser-Benachrichtigungen</h2>' +
-        '<div class="tf-toggle-row"><div><div class="tf-toggle-label">Status</div><div class="tf-toggle-sub">' + notifLabel + '</div></div>' +
-        (notifSupport && state.notifPermission !== 'granted' ? '<button class="tf-btn-secondary" data-action="req-notif" style="padding:6px 10px;font-size:12px">Erlauben</button>' : '') +
+      '<div class="tf-card"><h2>' + s.recentTitle + '</h2>' + listHtml + '</div>' +
+      '<div class="tf-card"><h2>' + s.notifTitle + '</h2>' +
+        '<div class="tf-toggle-row"><div><div class="tf-toggle-label">' + notifLabel + '</div></div>' +
+        (notifSupport && state.notifPermission !== 'granted' ? '<button class="tf-btn-secondary" data-action="req-notif" style="padding:6px 10px;font-size:12px">' + s.notifEnable + '</button>' : '') +
         '</div></div>';
 
     root.querySelector('[data-action="goto-create"]').onclick = () => {
@@ -291,36 +400,36 @@
   }
 
   function renderCreate() {
+    const s = t();
     const optsHtml = state.createOptions.map(o =>
       '<div class="tf-option-row" data-opt-id="' + o.id + '">' +
         '<input type="date" data-field="date" data-id="' + o.id + '" value="' + o.date + '" />' +
         '<input type="time" data-field="time" data-id="' + o.id + '" value="' + o.time + '" />' +
-        '<button class="tf-btn-icon" data-action="remove-option" data-id="' + o.id + '" aria-label="Termin entfernen">✕</button></div>'
+        '<button class="tf-btn-icon" data-action="remove-option" data-id="' + o.id + '" aria-label="remove">✕</button></div>'
     ).join('');
     const n = state.createNotify;
 
     root.innerHTML =
-      '<button class="tf-back" data-action="back-home">← Zurück</button>' +
-      '<div class="tf-card"><h2>Neue Umfrage</h2>' +
-        '<div class="tf-field"><label class="tf-label">Titel</label><input id="tf-title" placeholder="z.B. Grillabend im Park" value="' + escapeHtml(state._title || '') + '" /></div>' +
-        '<div class="tf-field"><label class="tf-label">Beschreibung (optional)</label><textarea id="tf-desc" rows="2" placeholder="Weitere Infos für die Teilnehmer">' + escapeHtml(state._desc || '') + '</textarea></div>' +
-        '<div class="tf-field"><label class="tf-label">Dein Name</label><input id="tf-creator" placeholder="Wird als Ersteller angezeigt" value="' + escapeHtml(state._creator || '') + '" /></div>' +
-        '<div class="tf-field"><label class="tf-label">Terminvorschläge</label><div id="tf-options">' + optsHtml + '</div>' +
-        '<button class="tf-btn-secondary" data-action="add-option" style="margin-top:4px">+ Termin hinzufügen</button></div>' +
+      '<button class="tf-back" data-action="back-home">' + s.back + '</button>' +
+      '<div class="tf-card"><h2>' + s.newPollTitle + '</h2>' +
+        '<div class="tf-field"><label class="tf-label">' + s.titleLabel + '</label><input id="tf-title" placeholder="' + s.titlePlaceholder + '" value="' + escapeHtml(state._title || '') + '" /></div>' +
+        '<div class="tf-field"><label class="tf-label">' + s.descLabel + '</label><textarea id="tf-desc" rows="2" placeholder="' + s.descPlaceholder + '">' + escapeHtml(state._desc || '') + '</textarea></div>' +
+        '<div class="tf-field"><label class="tf-label">' + s.nameLabel + '</label><input id="tf-creator" placeholder="' + s.namePlaceholder + '" value="' + escapeHtml(state._creator || '') + '" /></div>' +
+        '<div class="tf-field"><label class="tf-label">' + s.optionsLabel + '</label><div id="tf-options">' + optsHtml + '</div>' +
+        '<button class="tf-btn-secondary" data-action="add-option" style="margin-top:4px">' + s.addOptionBtn + '</button></div>' +
         (state.error ? '<div class="tf-error">' + escapeHtml(state.error) + '</div>' : '') +
-        '<button class="tf-btn-primary" data-action="submit-create" style="margin-top:8px">Umfrage erstellen</button></div>' +
-      '<div class="tf-card"><h2>Benachrichtigungen</h2>' +
-        '<p class="tf-sub">Jeder Kanal lässt sich einzeln an- oder ausschalten.</p>' +
-        '<div class="tf-toggle-row"><div><div class="tf-toggle-label">Browser-Benachrichtigungen</div><div class="tf-toggle-sub">Live-Hinweis bei neuen Stimmen</div></div>' +
+        '<button class="tf-btn-primary" data-action="submit-create" style="margin-top:8px">' + s.submitCreateBtn + '</button></div>' +
+      '<div class="tf-card"><h2>' + s.notifSectionTitle + '</h2><p class="tf-sub">' + s.notifSectionSub + '</p>' +
+        '<div class="tf-toggle-row"><div><div class="tf-toggle-label">' + s.pushLabel + '</div><div class="tf-toggle-sub">' + s.pushSub + '</div></div>' +
         '<label class="tf-switch"><input type="checkbox" data-notify="push" ' + (n.push ? 'checked' : '') + '><span class="tf-switch-track"></span></label></div>' +
-        '<div class="tf-toggle-row"><div><div class="tf-toggle-label">E-Mail</div><div class="tf-toggle-sub">Einladung, Erinnerung, Abschlussmail</div></div>' +
+        '<div class="tf-toggle-row"><div><div class="tf-toggle-label">' + s.emailLabel + '</div><div class="tf-toggle-sub">' + s.emailSub + '</div></div>' +
         '<label class="tf-switch"><input type="checkbox" data-notify="email" ' + (n.email ? 'checked' : '') + '><span class="tf-switch-track"></span></label></div>' +
-        (n.email ? '<div class="tf-field" style="margin-top:10px"><label class="tf-label">E-Mail-Adressen der Teilnehmer</label>' +
-          '<textarea id="tf-emails" rows="2" placeholder="anna@beispiel.de, ben@beispiel.de">' + escapeHtml(state.createEmails) + '</textarea>' +
-          '<div class="tf-hint">Kommagetrennt oder je eine pro Zeile.</div></div>' : '') +
-        '<div class="tf-toggle-row"><div><div class="tf-toggle-label">Microsoft Teams</div><div class="tf-toggle-sub">Meldung im Kanal</div></div>' +
+        (n.email ? '<div class="tf-field" style="margin-top:10px"><label class="tf-label">' + s.emailsLabel + '</label>' +
+          '<textarea id="tf-emails" rows="2" placeholder="' + s.emailsPlaceholder + '">' + escapeHtml(state.createEmails) + '</textarea>' +
+          '<div class="tf-hint">' + s.emailsHint + '</div></div>' : '') +
+        '<div class="tf-toggle-row"><div><div class="tf-toggle-label">' + s.teamsLabel + '</div><div class="tf-toggle-sub">' + s.teamsSub + '</div></div>' +
         '<label class="tf-switch"><input type="checkbox" data-notify="teams" ' + (n.teams ? 'checked' : '') + '><span class="tf-switch-track"></span></label></div>' +
-        (n.teams ? '<div class="tf-field" style="margin-top:10px"><label class="tf-label">Teams-Webhook-URL (optional, überschreibt Server-Standard)</label>' +
+        (n.teams ? '<div class="tf-field" style="margin-top:10px"><label class="tf-label">' + s.teamsWebhookLabel + '</label>' +
           '<input id="tf-teams-webhook" placeholder="https://outlook.office.com/webhook/…" value="' + escapeHtml(state.createTeamsWebhook) + '" /></div>' : '') +
         '</div>';
 
@@ -347,16 +456,17 @@
   }
 
   async function submitCreate() {
+    const s = t();
     readCreateForm();
     const title = (state._title || '').trim();
     const creator = (state._creator || '').trim();
     const validOptions = state.createOptions.filter(o => o.date);
-    if (!title) { state.error = 'Bitte einen Titel eingeben.'; render(); return; }
-    if (!creator) { state.error = 'Bitte deinen Namen eingeben.'; render(); return; }
-    if (validOptions.length < 1) { state.error = 'Bitte mindestens einen Termin mit Datum angeben.'; render(); return; }
+    if (!title) { state.error = s.errTitleRequired; render(); return; }
+    if (!creator) { state.error = s.errNameRequired; render(); return; }
+    if (validOptions.length < 1) { state.error = s.errDateRequired; render(); return; }
     state.error = '';
     const btn = root.querySelector('[data-action="submit-create"]');
-    if (btn) { btn.disabled = true; btn.textContent = 'Wird erstellt …'; }
+    if (btn) { btn.disabled = true; btn.textContent = s.creatingBtn; }
 
     const id = uid();
     const options = validOptions.map(o => ({ id: o.id, date: o.date, time: o.time }));
@@ -365,20 +475,19 @@
       id, title, description: (state._desc || '').trim(), creator, options,
       emails, notify: state.createNotify, teamsWebhookUrl: state.createTeamsWebhook
     });
-    if (!ok) { state.error = 'Umfrage konnte nicht erstellt werden. Serververbindung prüfen.'; if (btn) { btn.disabled = false; btn.textContent = 'Umfrage erstellen'; } render(); return; }
+    if (!ok) { state.error = s.errCreateFailed; if (btn) { btn.disabled = false; btn.textContent = s.submitCreateBtn; } render(); return; }
 
     state.myName = creator; localStorage.setItem('tf-my-name', creator);
     openPoll(id);
   }
 
   async function openPoll(id) {
+    const s = t();
     state.view = 'poll'; state.loading = true; state.currentPollId = id; state.error = ''; state.orgMsg = ''; render();
-    if (window.location.pathname.replace(/^\/+/, '').toUpperCase() !== id) {
-      window.history.pushState({}, '', '/' + id);
-    }
+    if (window.location.pathname.replace(/^\/+/, '').toUpperCase() !== id) window.history.pushState({}, '', '/' + id);
     const poll = await apiGet('/api/polls/' + id);
     if (!poll) {
-      state.loading = false; state.view = 'home'; state.error = 'Keine Umfrage mit diesem Code gefunden.';
+      state.loading = false; state.view = 'home'; state.error = s.pollNotFound;
       window.history.pushState({}, '', '/');
       state.pollIndex = await apiGet('/api/polls') || []; render(); return;
     }
@@ -401,9 +510,10 @@
   }
 
   function renderPoll() {
-    if (state.loading) { root.innerHTML = '<div class="tf-loading">Umfrage wird geladen …</div>'; return; }
+    const s = t();
+    if (state.loading) { root.innerHTML = '<div class="tf-loading">…</div>'; return; }
     const poll = state.currentPoll;
-    if (!poll) { root.innerHTML = '<div class="tf-loading">Nicht gefunden.</div>'; return; }
+    if (!poll) { root.innerHTML = '<div class="tf-loading">–</div>'; return; }
 
     const counts = computeCounts(poll, state.votes);
     const maxYes = Math.max(0, ...poll.options.map(o => counts[o.id].yes));
@@ -412,8 +522,8 @@
     const voteRows = poll.options.map(o => {
       const isYes = state.myChoices[o.id] === 'yes', isNo = state.myChoices[o.id] === 'no';
       return '<tr><td class="tf-date-cell">' + fmtOption(o) + '</td><td>' +
-        '<button class="tf-vote-toggle yes' + (isYes ? ' active' : '') + '" data-action="vote" data-opt="' + o.id + '" data-val="yes" aria-label="Ja">✓</button>' +
-        '<button class="tf-vote-toggle no' + (isNo ? ' active' : '') + '" data-action="vote" data-opt="' + o.id + '" data-val="no" aria-label="Nein">✕</button></td></tr>';
+        '<button class="tf-vote-toggle yes' + (isYes ? ' active' : '') + '" data-action="vote" data-opt="' + o.id + '" data-val="yes" aria-label="yes">✓</button>' +
+        '<button class="tf-vote-toggle no' + (isNo ? ' active' : '') + '" data-action="vote" data-opt="' + o.id + '" data-val="no" aria-label="no">✕</button></td></tr>';
     }).join('');
 
     const resultRows = poll.options.map(o => {
@@ -431,42 +541,42 @@
     const optionSelectHtml = poll.options.map(o => '<option value="' + o.id + '">' + fmtOption(o) + '</option>').join('');
 
     root.innerHTML =
-      '<button class="tf-back" data-action="back-home">← Alle Umfragen</button>' +
-      (finalOption ? '<div class="tf-final-banner">✅ Termin steht fest: ' + fmtOption(finalOption) + '</div>' : '') +
+      '<button class="tf-back" data-action="back-home">' + s.backAll + '</button>' +
+      (finalOption ? '<div class="tf-final-banner">' + s.finalBanner(fmtOption(finalOption)) + '</div>' : '') +
       '<div class="tf-card"><div class="tf-status-row"><h2 style="font-size:20px">' + escapeHtml(poll.title) + '</h2>' +
         '<span class="tf-badge" id="tf-status-badge"><span class="dot"></span>…</span></div>' +
         (poll.description ? '<p class="tf-sub" style="margin-top:8px">' + escapeHtml(poll.description) + '</p>' : '') +
-        '<p class="tf-sub">Erstellt von ' + escapeHtml(poll.creator) + '</p>' +
-        '<div class="tf-code-display" data-action="copy-code" title="Klicken zum Kopieren">' + poll.id + '</div>' +
-        '<div class="tf-code-hint">Diesen Code an andere weitergeben, damit sie hier mit abstimmen können.</div>' +
-        '<button class="tf-btn-secondary" data-action="copy-link" style="width:100%;margin-top:10px">🔗 Direkten Link zu dieser Umfrage kopieren</button></div>' +
-      '<div class="tf-card"><h2>Deine Stimme</h2>' +
-        '<div class="tf-field" style="margin-top:12px"><label class="tf-label">Dein Name</label><input id="tf-vote-name" placeholder="Name eingeben" value="' + escapeHtml(state.myName) + '" /></div>' +
+        '<p class="tf-sub">' + s.createdBy + ' ' + escapeHtml(poll.creator) + '</p>' +
+        '<div class="tf-code-display" data-action="copy-code" title="' + s.codeCopied + '">' + poll.id + '</div>' +
+        '<div class="tf-code-hint">' + s.codeHint + '</div>' +
+        '<button class="tf-btn-secondary" data-action="copy-link" style="width:100%;margin-top:10px">' + s.copyLinkBtn + '</button></div>' +
+      '<div class="tf-card"><h2>' + s.yourVoteTitle + '</h2>' +
+        '<div class="tf-field" style="margin-top:12px"><label class="tf-label">' + s.nameLabel + '</label><input id="tf-vote-name" placeholder="' + s.namePlaceholder + '" value="' + escapeHtml(state.myName) + '" /></div>' +
         '<table class="tf-grid"><tbody>' + voteRows + '</tbody></table>' +
         (state.error ? '<div class="tf-error">' + escapeHtml(state.error) + '</div>' : '') +
-        '<button class="tf-btn-primary" data-action="submit-vote" style="margin-top:14px">Abstimmung speichern</button></div>' +
+        '<button class="tf-btn-primary" data-action="submit-vote" style="margin-top:14px">' + s.saveVoteBtn + '</button></div>' +
       '<div class="tf-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">' +
-        '<h2>Ergebnisse (' + state.votes.length + ' Teilnehmer)</h2>' +
-        '<button class="tf-btn-secondary" data-action="refresh" style="padding:6px 10px;font-size:12px">↻ Aktualisieren</button></div>' +
-        (state.votes.length ? '<div style="overflow-x:auto"><table class="tf-grid"><thead><tr><th style="text-align:left">Termin</th>' + participantHeaders + '<th>Ja</th></tr></thead><tbody>' + resultRows + '</tbody></table></div>' : '<div class="tf-empty">Noch keine Stimmen abgegeben.</div>') + '</div>' +
-      '<div class="tf-card"><h2>Für Organisatoren</h2>' +
-        '<button class="tf-btn-secondary" data-action="remind">Erinnerung an Nicht-Abstimmende senden</button>' +
-        '<div class="tf-field" style="margin-top:14px"><label class="tf-label">Termin final festlegen</label>' +
-        '<div class="tf-row"><select id="tf-finalize-select" style="flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--paper);border-radius:6px;padding:10px 12px;font-size:14px"><option value="">Termin wählen …</option>' + optionSelectHtml + '</select>' +
-        '<button class="tf-btn-secondary" data-action="finalize">Abschließen</button></div></div>' +
+        '<h2>' + s.resultsTitle(state.votes.length) + '</h2>' +
+        '<button class="tf-btn-secondary" data-action="refresh" style="padding:6px 10px;font-size:12px">' + s.refreshBtn + '</button></div>' +
+        (state.votes.length ? '<div style="overflow-x:auto"><table class="tf-grid"><thead><tr><th style="text-align:left">' + s.dateCol + '</th>' + participantHeaders + '<th>' + s.yesCol + '</th></tr></thead><tbody>' + resultRows + '</tbody></table></div>' : '<div class="tf-empty">' + s.noVotesYet + '</div>') + '</div>' +
+      '<div class="tf-card"><h2>' + s.organizerTitle + '</h2>' +
+        '<button class="tf-btn-secondary" data-action="remind">' + s.remindBtn + '</button>' +
+        '<div class="tf-field" style="margin-top:14px"><label class="tf-label">' + s.finalizeLabel + '</label>' +
+        '<div class="tf-row"><select id="tf-finalize-select" style="flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--paper);border-radius:6px;padding:10px 12px;font-size:14px"><option value="">' + s.finalizeSelectPlaceholder + '</option>' + optionSelectHtml + '</select>' +
+        '<button class="tf-btn-secondary" data-action="finalize">' + s.finalizeBtn + '</button></div></div>' +
         (state.orgMsg ? '<div class="tf-ok">' + escapeHtml(state.orgMsg) + '</div>' : '') + '</div>';
 
     root.querySelector('[data-action="back-home"]').onclick = async () => { stopLive(); state.view = 'home'; state.error = ''; window.history.pushState({}, '', '/'); state.pollIndex = await apiGet('/api/polls') || []; render(); };
     root.querySelector('[data-action="copy-code"]').onclick = (e) => {
       navigator.clipboard && navigator.clipboard.writeText(state.currentPoll.id).catch(() => {});
       const el = e.currentTarget, original = el.textContent;
-      el.textContent = 'Kopiert!'; setTimeout(() => { el.textContent = original; }, 1200);
+      el.textContent = s.codeCopied; setTimeout(() => { el.textContent = original; }, 1200);
     };
     root.querySelector('[data-action="copy-link"]').onclick = (e) => {
       const link = window.location.origin + '/' + state.currentPoll.id;
       navigator.clipboard && navigator.clipboard.writeText(link).catch(() => {});
       const el = e.currentTarget, original = el.textContent;
-      el.textContent = '✓ Link kopiert'; setTimeout(() => { el.textContent = original; }, 1500);
+      el.textContent = s.linkCopied; setTimeout(() => { el.textContent = original; }, 1500);
     };
     root.querySelectorAll('[data-action="vote"]').forEach(btn => btn.onclick = () => {
       const opt = btn.getAttribute('data-opt'), val = btn.getAttribute('data-val');
@@ -478,14 +588,14 @@
     root.querySelector('[data-action="remind"]').onclick = async (e) => {
       e.target.disabled = true;
       const r = await apiPost('/api/polls/' + state.currentPollId + '/remind', {});
-      state.orgMsg = r ? ('Erinnerung an ' + r.sent + ' Person(en) gesendet.') : 'Erinnerung konnte nicht gesendet werden.';
+      state.orgMsg = r ? s.remindSent(r.sent) : s.remindFailed;
       render();
     };
     root.querySelector('[data-action="finalize"]').onclick = async () => {
       const sel = root.querySelector('#tf-finalize-select'), optionId = sel ? sel.value : '';
-      if (!optionId) { state.orgMsg = 'Bitte zuerst einen Termin auswählen.'; render(); return; }
+      if (!optionId) { state.orgMsg = s.finalizeChooseFirst; render(); return; }
       const r = await apiPost('/api/polls/' + state.currentPollId + '/finalize', { optionId });
-      state.orgMsg = r ? 'Termin final festgelegt, Beteiligte wurden informiert.' : 'Konnte nicht abgeschlossen werden.';
+      state.orgMsg = r ? s.finalizeOk : s.finalizeFailed;
       if (r) state.currentPoll.finalizedOptionId = optionId;
       render();
     };
@@ -493,25 +603,23 @@
   }
 
   async function submitVote() {
+    const s = t();
     const name = (root.querySelector('#tf-vote-name').value || '').trim();
-    if (!name) { state.error = 'Bitte deinen Namen eingeben.'; render(); return; }
-    if (Object.keys(state.myChoices).length === 0) { state.error = 'Bitte für mindestens einen Termin abstimmen.'; render(); return; }
+    if (!name) { state.error = s.errVoteRequired; render(); return; }
+    if (Object.keys(state.myChoices).length === 0) { state.error = s.errChoiceRequired; render(); return; }
     state.error = ''; state.myName = name; localStorage.setItem('tf-my-name', name);
     const btn = root.querySelector('[data-action="submit-vote"]');
-    if (btn) { btn.disabled = true; btn.textContent = 'Wird gespeichert …'; }
+    if (btn) { btn.disabled = true; btn.textContent = s.savingVoteBtn; }
     const ok = await apiPost('/api/polls/' + state.currentPollId + '/votes', { name, choices: state.myChoices, voterId });
-    if (!ok) { state.error = 'Stimme konnte nicht gespeichert werden.'; render(); return; }
+    if (!ok) { state.error = s.errVoteSaveFailed; render(); return; }
     await refreshPollView(true);
   }
 
   (async function init() {
+    document.documentElement.lang = state.lang;
     state.pollIndex = await apiGet('/api/polls') || [];
     const urlCode = window.location.pathname.replace(/^\/+/, '').trim().toUpperCase();
-    if (urlCode) {
-      openPoll(urlCode);
-    } else {
-      render();
-    }
+    if (urlCode) openPoll(urlCode); else render();
   })();
 
   window.addEventListener('popstate', () => {
