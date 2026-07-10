@@ -98,8 +98,18 @@ async function postToTeams(webhookUrl, text) {
 const app = express();
 app.use(cors({ origin: CORS_ORIGIN === '*' ? '*' : CORS_ORIGIN.split(',') }));
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
+
+// Liste der zuletzt erstellten Umfragen (für die Startseite)
+app.get('/api/polls', (req, res) => {
+  const list = Object.values(db.polls)
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, 60)
+    .map(({ id, title, createdAt }) => ({ id, title, createdAt }));
+  res.json(list);
+});
 
 // Umfrage anlegen (spiegelt die im Frontend lokal erzeugte Umfrage und
 // aktiviert serverseitige Benachrichtigungen dafür)
