@@ -282,6 +282,19 @@
     return id;
   }
   const voterId = getVoterId();
+
+  // Nur lokal auf diesem Gerät gespeicherte Liste eigener/geöffneter Umfragen.
+  // Es gibt bewusst keinen Server-Endpunkt, der alle Umfragen auflistet, damit
+  // niemand fremde, nicht für ihn bestimmte Umfragen einsehen kann.
+  function getLocalPolls() {
+    try { return JSON.parse(localStorage.getItem('tf-my-polls') || '[]'); }
+    catch (e) { return []; }
+  }
+  function addLocalPoll(entry) {
+    const list = getLocalPolls().filter(p => p.id !== entry.id);
+    list.unshift(entry);
+    localStorage.setItem('tf-my-polls', JSON.stringify(list.slice(0, 30)));
+  }
   function sanitizeKey(str) { return (str || 'gast').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').slice(0, 40) || 'gast'; }
   function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
@@ -482,9 +495,10 @@
     if (!poll) {
       state.loading = false; state.view = 'home'; state.error = s.pollNotFound;
       window.history.pushState({}, '', '/');
-      state.pollIndex = await apiGet('/api/polls') || []; render(); return;
+      state.pollIndex = getLocalPolls(); render(); return;
     }
     state.currentPoll = poll;
+    addLocalPoll({ id: poll.id, title: poll.title, createdAt: poll.createdAt });
     state.votes = await apiGet('/api/polls/' + id + '/votes') || [];
     knownVoteKeys = new Set(state.votes.map(v => sanitizeKey(v.name)));
     const mine = state.votes.find(v => sanitizeKey(v.name) === sanitizeKey(state.myName));
@@ -559,7 +573,7 @@
         '<button class="tf-btn-secondary" data-action="finalize">' + s.finalizeBtn + '</button></div></div>' +
         (state.orgMsg ? '<div class="tf-ok">' + escapeHtml(state.orgMsg) + '</div>' : '') + '</div>';
 
-    root.querySelector('[data-action="back-home"]').onclick = async () => { stopLive(); state.view = 'home'; state.error = ''; window.history.pushState({}, '', '/'); state.pollIndex = await apiGet('/api/polls') || []; render(); };
+    root.querySelector('[data-action="back-home"]').onclick = async () => { stopLive(); state.view = 'home'; state.error = ''; window.history.pushState({}, '', '/'); state.pollIndex = getLocalPolls(); render(); };
     root.querySelector('[data-action="copy-code"]').onclick = (e) => {
       navigator.clipboard && navigator.clipboard.writeText(state.currentPoll.id).catch(() => {});
       const el = e.currentTarget, original = el.textContent;
@@ -604,7 +618,7 @@
 
   (async function init() {
     document.documentElement.lang = state.lang;
-    state.pollIndex = await apiGet('/api/polls') || [];
+    state.pollIndex = getLocalPolls();
     const urlCode = window.location.pathname.replace(/^\/+/, '').trim().toUpperCase();
     if (urlCode) openPoll(urlCode); else render();
   })();
