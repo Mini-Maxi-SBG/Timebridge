@@ -220,6 +220,17 @@ app.post('/api/polls/:id/finalize', async (req, res) => {
   res.json({ ok: true });
 });
 
+// Umfrage endgültig löschen
+app.delete('/api/polls/:id', (req, res) => {
+  const poll = db.polls[req.params.id];
+  if (!poll) return res.status(404).json({ error: 'Umfrage nicht gefunden' });
+  broadcast(poll.id, 'deleted', {});
+  delete db.polls[req.params.id];
+  delete db.votes[req.params.id];
+  saveData();
+  res.json({ ok: true });
+});
+
 // Server-Sent Events: Live-Updates für eine einzelne Umfrage
 app.get('/api/polls/:id/stream', (req, res) => {
   const pollId = req.params.id;
