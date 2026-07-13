@@ -698,6 +698,10 @@
       el.textContent = s.linkCopied; setTimeout(() => { el.textContent = original; }, 1500);
     };
     root.querySelectorAll('[data-action="vote"]').forEach(btn => btn.onclick = () => {
+      const nameEl = root.querySelector('#tf-vote-name');
+      const commentEl = root.querySelector('#tf-vote-comment');
+      if (nameEl) state.myName = nameEl.value;
+      if (commentEl) state.myComment = commentEl.value;
       const opt = btn.getAttribute('data-opt'), val = btn.getAttribute('data-val');
       if (state.myChoices[opt] === val) delete state.myChoices[opt]; else state.myChoices[opt] = val;
       render();
