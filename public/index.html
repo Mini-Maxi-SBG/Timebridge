@@ -613,13 +613,10 @@
         '<polygon points="9,10.4 9.5,11.4 10.6,11.4 9.7,12.1 10,13.2 9,12.5 8,13.2 8.3,12.1 7.4,11.4 8.5,11.4" fill="#FFDE00"/></svg>'
   };
   function detectLang() {
+    // Standardsprache ist immer Englisch, bis jemand aktiv eine andere Sprache
+    // wählt (die Auswahl wird dann dauerhaft im Browser gemerkt).
     const stored = localStorage.getItem('tf-lang');
     if (stored && SUPPORTED_LANGS.includes(stored)) return stored;
-    const candidates = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'en'];
-    for (const c of candidates) {
-      const code = (c || '').toLowerCase().slice(0, 2);
-      if (SUPPORTED_LANGS.includes(code)) return code;
-    }
     return 'en';
   }
 
