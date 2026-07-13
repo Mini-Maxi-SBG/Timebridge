@@ -319,6 +319,20 @@
     localStorage.setItem('tf-my-polls', JSON.stringify(getLocalPolls().filter(p => p.id !== id)));
     localStorage.setItem('tf-created-ids', JSON.stringify(getCreatedIds().filter(i => i !== id)));
   }
+  // Gleicht die lokal gemerkte Liste mit dem Server ab und entfernt Einträge,
+  // deren Umfrage inzwischen (z.B. von jemand anderem) gelöscht wurde.
+  async function getValidatedLocalPolls() {
+    const list = getLocalPolls();
+    if (!list.length) return list;
+    const checks = await Promise.all(list.map(p => apiGet('/api/polls/' + p.id)));
+    const stillExisting = list.filter((p, i) => checks[i]);
+    if (stillExisting.length !== list.length) {
+      localStorage.setItem('tf-my-polls', JSON.stringify(stillExisting));
+      const stillIds = new Set(stillExisting.map(p => p.id));
+      localStorage.setItem('tf-created-ids', JSON.stringify(getCreatedIds().filter(id => stillIds.has(id))));
+    }
+    return stillExisting;
+  }
   function sanitizeKey(str) { return (str || 'gast').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').slice(0, 40) || 'gast'; }
   function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
@@ -362,6 +376,7 @@
       eventSource.addEventListener('vote', () => refreshPollView(true));
       eventSource.addEventListener('finalized', () => refreshPollView(true));
       eventSource.addEventListener('deleted', () => {
+        removeLocalPollEverywhere(pollId);
         stopLive();
         state.view = 'home'; state.error = t().pollNotFound;
         window.history.pushState({}, '', '/');
@@ -530,7 +545,7 @@
     if (!poll) {
       state.loading = false; state.view = 'home'; state.error = s.pollNotFound;
       window.history.pushState({}, '', '/');
-      state.pollIndex = getLocalPolls(); render(); return;
+      state.pollIndex = await getValidatedLocalPolls(); render(); return;
     }
     state.currentPoll = poll;
     addLocalPoll({ id: poll.id, title: poll.title, createdAt: poll.createdAt });
@@ -625,7 +640,7 @@
         (state.votes.length ? '<div style="overflow-x:auto"><table class="tf-grid"><thead><tr><th style="text-align:left">' + s.dateCol + '</th>' + participantHeaders + '<th>' + s.yesCol + '</th></tr></thead><tbody>' + resultRows + '</tbody></table></div>' : '<div class="tf-empty">' + s.noVotesYet + '</div>') + '</div>' +
       organizerHtml;
 
-    root.querySelector('[data-action="back-home"]').onclick = async () => { stopLive(); state.view = 'home'; state.error = ''; window.history.pushState({}, '', '/'); state.pollIndex = getLocalPolls(); render(); };
+    root.querySelector('[data-action="back-home"]').onclick = async () => { stopLive(); state.view = 'home'; state.error = ''; window.history.pushState({}, '', '/'); state.pollIndex = await getValidatedLocalPolls(); render(); };
     root.querySelector('[data-action="copy-code"]').onclick = (e) => {
       navigator.clipboard && navigator.clipboard.writeText(state.currentPoll.id).catch(() => {});
       const el = e.currentTarget, original = el.textContent;
@@ -688,7 +703,7 @@
 
   (async function init() {
     document.documentElement.lang = state.lang;
-    state.pollIndex = getLocalPolls();
+    state.pollIndex = await getValidatedLocalPolls();
     const urlCode = window.location.pathname.replace(/^\/+/, '').trim().toUpperCase();
     if (urlCode) openPoll(urlCode); else render();
   })();
