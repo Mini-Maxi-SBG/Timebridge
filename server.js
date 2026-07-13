@@ -105,13 +105,14 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 // Umfrage anlegen (spiegelt die im Frontend lokal erzeugte Umfrage und
 // aktiviert serverseitige Benachrichtigungen dafür)
 app.post('/api/polls', async (req, res) => {
-  const { id, title, description, creator, options, emails, notify } = req.body || {};
+  const { id, title, description, creator, options, emails, notify, creatorTz } = req.body || {};
   if (!id || !title || !Array.isArray(options) || options.length === 0) {
     return res.status(400).json({ error: 'id, title und options sind erforderlich.' });
   }
   const poll = {
     id, title, description: description || '', creator: creator || '',
     options,
+    creatorTz: creatorTz || '',
     emails: Array.isArray(emails) ? emails.filter(Boolean) : [],
     notify: { email: !!notify?.email, teams: !!notify?.teams, push: !!notify?.push },
     teamsWebhookUrl: notify?.teamsWebhookUrl || '',
