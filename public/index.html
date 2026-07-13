@@ -39,15 +39,27 @@
   input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; }
   ::placeholder { color: var(--muted); }
 
-  .tf-lang-switch { position: absolute; top: 0; right: 16px; display: flex; gap: 6px; }
-  .tf-lang-btn {
+  .tf-lang-switch { position: absolute; top: 0; right: 16px; }
+  .tf-lang-toggle {
     background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
-    width: 38px; height: 30px; display: flex; align-items: center; justify-content: center;
-    opacity: 0.55; padding: 0;
+    height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 8px;
+    color: var(--muted); font-size: 12px;
   }
-  .tf-lang-btn svg { width: 22px; height: 16px; border-radius: 2px; display: block; }
-  .tf-lang-btn.active { opacity: 1; border-color: var(--amber); }
-  .tf-lang-btn:hover { opacity: 1; }
+  .tf-lang-toggle:hover { color: var(--paper); border-color: var(--muted); }
+  .tf-lang-toggle svg { width: 20px; height: 14px; border-radius: 2px; display: block; }
+  .tf-lang-menu {
+    position: absolute; top: 36px; right: 0; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 4px; min-width: 150px; display: none; z-index: 10;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+  }
+  .tf-lang-menu.open { display: block; }
+  .tf-lang-item {
+    display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: none;
+    padding: 7px 8px; border-radius: 5px; font-size: 13px; color: var(--paper); text-align: left;
+  }
+  .tf-lang-item svg { width: 20px; height: 14px; border-radius: 2px; flex-shrink: 0; display: block; }
+  .tf-lang-item:hover { background: var(--panel-2); }
+  .tf-lang-item.active { color: var(--amber); }
 
   .tf-header { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 46px 0 30px; }
   .tf-header-compact { padding: 46px 0 6px; }
@@ -161,14 +173,7 @@
 </head>
 <body>
 <div id="tf-root">
-  <div class="tf-lang-switch" id="tf-lang-switch">
-    <button class="tf-lang-btn" data-lang="de" aria-label="Deutsch">
-      <svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="5.34" y="0" fill="#000"/><rect width="24" height="5.34" y="5.33" fill="#DD0000"/><rect width="24" height="5.34" y="10.66" fill="#FFCE00"/></svg>
-    </button>
-    <button class="tf-lang-btn" data-lang="en" aria-label="English">
-      <svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="16" fill="#00247D"/><path d="M0,0 L24,16 M24,0 L0,16" stroke="#fff" stroke-width="3"/><path d="M0,0 L24,16 M24,0 L0,16" stroke="#CF142B" stroke-width="1.2"/><rect x="9" width="6" height="16" fill="#fff"/><rect y="6" width="24" height="4" fill="#fff"/><rect x="10.5" width="3" height="16" fill="#CF142B"/><rect y="7" width="24" height="2" fill="#CF142B"/></svg>
-    </button>
-  </div>
+  <div class="tf-lang-switch" id="tf-lang-switch"></div>
   <div id="tf-app"></div>
 </div>
 
@@ -269,8 +274,354 @@
       liveLabel: 'Live', pollLabel: 'Refreshes every 8s', localLabel: 'Local',
       newVoteTitle: 'New vote(s) received', newVoteBody: (names) => `${names} voted.`,
       dateLocale: 'en-GB'
+    },
+    fr: {
+      createTitle: 'Créer un nouveau sondage', createSub: 'Proposez plusieurs dates et invitez d\u2019autres personnes à voter.', createBtn: '+ Créer un sondage',
+      joinTitle: 'Ouvrir un sondage par code', joinSub: 'Vous avez reçu un code ? Saisissez-le ici.', joinPlaceholder: 'ex. A1B2C3', joinBtn: 'Ouvrir',
+      recentTitle: 'Créés récemment', recentTitleParticipant: 'Sondage(s) récent(s)', recentEmpty: 'Aucun sondage pour le moment.',
+      notifTitle: 'Notifications du navigateur', notifEnable: 'Activer', notifGranted: 'Activées ✓', notifDenied: 'Bloquées (à changer dans les paramètres du navigateur)', notifUnsupported: 'Non prises en charge',
+      pollNotFound: 'Aucun sondage trouvé avec ce code.',
+      back: '← Retour', backAll: '← Aperçu',
+      newPollTitle: 'Nouveau sondage',
+      titleLabel: 'Titre', titlePlaceholder: 'ex. Barbecue d\u2019équipe au parc',
+      descLabel: 'Description (facultatif)', descPlaceholder: 'Informations complémentaires pour les participants',
+      nameLabel: 'Votre nom', namePlaceholder: 'Affiché comme organisateur',
+      optionsLabel: 'Dates proposées', addOptionBtn: '+ Ajouter une date',
+      dateFieldLabel: 'Date', timeFieldLabel: 'Heure (facultatif)',
+      tzCreateHint: (tz) => `Les heures sont dans votre fuseau horaire (${tz}) et seront automatiquement converties pour les participants internationaux.`,
+      submitCreateBtn: 'Créer le sondage', creatingBtn: 'Création en cours …',
+      notifSectionTitle: 'Notifications', notifSectionSub: 'Chaque canal peut être activé ou désactivé individuellement.',
+      pushLabel: 'Notifications du navigateur', pushSub: 'Alerte en direct lors de nouveaux votes',
+      emailLabel: 'E-mail', emailSub: 'Invitation, rappel, confirmation finale',
+      emailsLabel: 'Adresses e-mail des participants', emailsPlaceholder: 'anna@exemple.fr, ben@exemple.fr', emailsHint: 'Séparées par des virgules ou une par ligne.',
+      teamsLabel: 'Microsoft Teams', teamsSub: 'Publier les mises à jour dans le canal',
+      teamsWebhookLabel: 'URL de webhook Teams (facultatif, remplace celle du serveur)',
+      errTitleRequired: 'Veuillez saisir un titre.', errNameRequired: 'Veuillez saisir votre nom.', errDateRequired: 'Veuillez ajouter au moins une date.',
+      errCreateFailed: 'Impossible de créer le sondage. Vérifiez la connexion au serveur.',
+      errVoteRequired: 'Veuillez saisir votre nom.', errChoiceRequired: 'Veuillez voter pour au moins une date.', errVoteSaveFailed: 'Impossible d\u2019enregistrer votre vote.',
+      createdBy: 'Créé par', codeHint: 'Partagez ce code avec d\u2019autres personnes pour qu\u2019elles puissent voter ici aussi.',
+      tzNotice: (tz) => `Les heures sont automatiquement converties dans votre fuseau horaire (${tz}).`,
+      copyLinkBtn: '🔗 Copier le lien direct vers ce sondage', linkCopied: '✓ Lien copié', codeCopied: 'Copié !',
+      yourVoteTitle: 'Votre vote', saveVoteBtn: 'Enregistrer le vote', saveChangesBtn: 'Enregistrer les modifications', savingVoteBtn: 'Enregistrement …',
+      alreadyVotedNotice: 'Vous avez déjà participé à ce sondage. Vous pouvez modifier votre choix à tout moment.',
+      commentLabel: 'Commentaire (facultatif)', commentPlaceholder: 'ex. « Je serai peut-être un peu en retard »',
+      lockedNotice: (d) => `Ce sondage est clôturé. La date retenue est : ${d}. Il n\u2019est plus possible de voter.`,
+      resultsTitle: (n) => `Résultats (${n} participants)`, refreshBtn: '↻ Actualiser', noVotesYet: 'Aucun vote pour le moment.',
+      dateCol: 'Date', yesCol: 'Oui',
+      organizerTitle: 'Pour les organisateurs', remindBtn: 'Envoyer un rappel',
+      finalizeLabel: 'Valider la date définitive', finalizeSelectPlaceholder: 'Choisir une date …', finalizeBtn: 'Valider',
+      finalBanner: (d) => `✅ Date confirmée : ${d}`,
+      remindSent: (n) => `Rappel envoyé à ${n} personne(s).`, remindFailed: 'Impossible d\u2019envoyer le rappel.',
+      finalizeChooseFirst: 'Veuillez d\u2019abord choisir une date.', finalizeOk: 'Date validée, les participants ont été informés.', finalizeFailed: 'Impossible de valider.',
+      deleteBtn: '🗑 Supprimer le sondage', deleteConfirmText: (title) => `Voulez-vous vraiment supprimer définitivement le sondage « ${title} » ? Tous les votes seront perdus.`,
+      deleteConfirmBtn: 'Oui, supprimer définitivement', deleteCancelBtn: 'Annuler', deleteFailed: 'Suppression impossible.',
+      alreadyFinalizedHint: 'La date a déjà été validée et ne peut plus être modifiée.',
+      liveLabel: 'En direct', pollLabel: 'Actualisation toutes les 8s', localLabel: 'Local',
+      newVoteTitle: 'Nouveau(x) vote(s) reçu(s)', newVoteBody: (names) => `${names} a/ont voté.`,
+      dateLocale: 'fr-FR'
+    },
+    es: {
+      createTitle: 'Crear una nueva encuesta', createSub: 'Propón varias fechas e invita a otras personas a votar.', createBtn: '+ Crear encuesta',
+      joinTitle: 'Abrir una encuesta con código', joinSub: '¿Tienes un código? Introdúcelo aquí.', joinPlaceholder: 'p. ej. A1B2C3', joinBtn: 'Abrir',
+      recentTitle: 'Creadas recientemente', recentTitleParticipant: 'Encuesta(s) reciente(s)', recentEmpty: 'Todavía no hay encuestas.',
+      notifTitle: 'Notificaciones del navegador', notifEnable: 'Activar', notifGranted: 'Activadas ✓', notifDenied: 'Bloqueadas (cámbialo en la configuración del navegador)', notifUnsupported: 'No compatible',
+      pollNotFound: 'No se encontró ninguna encuesta con ese código.',
+      back: '← Volver', backAll: '← Resumen',
+      newPollTitle: 'Nueva encuesta',
+      titleLabel: 'Título', titlePlaceholder: 'p. ej. Barbacoa de equipo en el parque',
+      descLabel: 'Descripción (opcional)', descPlaceholder: 'Información adicional para los participantes',
+      nameLabel: 'Tu nombre', namePlaceholder: 'Se mostrará como organizador',
+      optionsLabel: 'Fechas propuestas', addOptionBtn: '+ Añadir fecha',
+      dateFieldLabel: 'Fecha', timeFieldLabel: 'Hora (opcional)',
+      tzCreateHint: (tz) => `Las horas están en tu zona horaria (${tz}) y se convertirán automáticamente para participantes internacionales.`,
+      submitCreateBtn: 'Crear encuesta', creatingBtn: 'Creando …',
+      notifSectionTitle: 'Notificaciones', notifSectionSub: 'Cada canal se puede activar o desactivar individualmente.',
+      pushLabel: 'Notificaciones del navegador', pushSub: 'Aviso en vivo cuando lleguen nuevos votos',
+      emailLabel: 'Correo electrónico', emailSub: 'Invitación, recordatorio, confirmación final',
+      emailsLabel: 'Direcciones de correo de los participantes', emailsPlaceholder: 'ana@ejemplo.es, ben@ejemplo.es', emailsHint: 'Separadas por comas o una por línea.',
+      teamsLabel: 'Microsoft Teams', teamsSub: 'Publicar actualizaciones en el canal',
+      teamsWebhookLabel: 'URL del webhook de Teams (opcional, sustituye la del servidor)',
+      errTitleRequired: 'Introduce un título.', errNameRequired: 'Introduce tu nombre.', errDateRequired: 'Añade al menos una fecha.',
+      errCreateFailed: 'No se pudo crear la encuesta. Comprueba la conexión con el servidor.',
+      errVoteRequired: 'Introduce tu nombre.', errChoiceRequired: 'Vota al menos una fecha.', errVoteSaveFailed: 'No se pudo guardar tu voto.',
+      createdBy: 'Creado por', codeHint: 'Comparte este código con otras personas para que también puedan votar aquí.',
+      tzNotice: (tz) => `Las horas se convierten automáticamente a tu zona horaria (${tz}).`,
+      copyLinkBtn: '🔗 Copiar enlace directo a esta encuesta', linkCopied: '✓ Enlace copiado', codeCopied: '¡Copiado!',
+      yourVoteTitle: 'Tu voto', saveVoteBtn: 'Guardar voto', saveChangesBtn: 'Guardar cambios', savingVoteBtn: 'Guardando …',
+      alreadyVotedNotice: 'Ya has participado en esta encuesta. Puedes cambiar tu elección en cualquier momento.',
+      commentLabel: 'Comentario (opcional)', commentPlaceholder: 'p. ej. "Puede que llegue un poco tarde"',
+      lockedNotice: (d) => `Esta encuesta está cerrada. La fecha confirmada es: ${d}. Ya no se puede votar.`,
+      resultsTitle: (n) => `Resultados (${n} participantes)`, refreshBtn: '↻ Actualizar', noVotesYet: 'Todavía no hay votos.',
+      dateCol: 'Fecha', yesCol: 'Sí',
+      organizerTitle: 'Para organizadores', remindBtn: 'Enviar recordatorio',
+      finalizeLabel: 'Confirmar la fecha definitiva', finalizeSelectPlaceholder: 'Elegir una fecha …', finalizeBtn: 'Confirmar',
+      finalBanner: (d) => `✅ Fecha confirmada: ${d}`,
+      remindSent: (n) => `Recordatorio enviado a ${n} persona(s).`, remindFailed: 'No se pudo enviar el recordatorio.',
+      finalizeChooseFirst: 'Primero elige una fecha.', finalizeOk: 'Fecha confirmada, se ha informado a los participantes.', finalizeFailed: 'No se pudo confirmar.',
+      deleteBtn: '🗑 Eliminar encuesta', deleteConfirmText: (title) => `¿Seguro que quieres eliminar definitivamente la encuesta "${title}"? Se perderán todos los votos.`,
+      deleteConfirmBtn: 'Sí, eliminar definitivamente', deleteCancelBtn: 'Cancelar', deleteFailed: 'No se pudo eliminar.',
+      alreadyFinalizedHint: 'La fecha ya se ha confirmado y no se puede modificar.',
+      liveLabel: 'En vivo', pollLabel: 'Se actualiza cada 8s', localLabel: 'Local',
+      newVoteTitle: 'Nuevo(s) voto(s) recibido(s)', newVoteBody: (names) => `${names} ha(n) votado.`,
+      dateLocale: 'es-ES'
+    },
+    it: {
+      createTitle: 'Crea un nuovo sondaggio', createSub: 'Proponi più date e invita altre persone a votare.', createBtn: '+ Crea sondaggio',
+      joinTitle: 'Apri un sondaggio con un codice', joinSub: 'Hai ricevuto un codice? Inseriscilo qui.', joinPlaceholder: 'es. A1B2C3', joinBtn: 'Apri',
+      recentTitle: 'Creati di recente', recentTitleParticipant: 'Sondaggio/i recente/i', recentEmpty: 'Nessun sondaggio ancora.',
+      notifTitle: 'Notifiche del browser', notifEnable: 'Attiva', notifGranted: 'Attivate ✓', notifDenied: 'Bloccate (modifica nelle impostazioni del browser)', notifUnsupported: 'Non supportate',
+      pollNotFound: 'Nessun sondaggio trovato con questo codice.',
+      back: '← Indietro', backAll: '← Panoramica',
+      newPollTitle: 'Nuovo sondaggio',
+      titleLabel: 'Titolo', titlePlaceholder: 'es. Grigliata di squadra al parco',
+      descLabel: 'Descrizione (opzionale)', descPlaceholder: 'Informazioni aggiuntive per i partecipanti',
+      nameLabel: 'Il tuo nome', namePlaceholder: 'Visualizzato come organizzatore',
+      optionsLabel: 'Date proposte', addOptionBtn: '+ Aggiungi data',
+      dateFieldLabel: 'Data', timeFieldLabel: 'Ora (opzionale)',
+      tzCreateHint: (tz) => `Gli orari sono nel tuo fuso orario (${tz}) e verranno convertiti automaticamente per i partecipanti internazionali.`,
+      submitCreateBtn: 'Crea sondaggio', creatingBtn: 'Creazione in corso …',
+      notifSectionTitle: 'Notifiche', notifSectionSub: 'Ogni canale può essere attivato o disattivato singolarmente.',
+      pushLabel: 'Notifiche del browser', pushSub: 'Avviso in tempo reale per i nuovi voti',
+      emailLabel: 'E-mail', emailSub: 'Invito, promemoria, conferma finale',
+      emailsLabel: 'Indirizzi e-mail dei partecipanti', emailsPlaceholder: 'anna@esempio.it, ben@esempio.it', emailsHint: 'Separati da virgola oppure uno per riga.',
+      teamsLabel: 'Microsoft Teams', teamsSub: 'Pubblica aggiornamenti nel canale',
+      teamsWebhookLabel: 'URL webhook di Teams (opzionale, sostituisce quello del server)',
+      errTitleRequired: 'Inserisci un titolo.', errNameRequired: 'Inserisci il tuo nome.', errDateRequired: 'Aggiungi almeno una data.',
+      errCreateFailed: 'Impossibile creare il sondaggio. Controlla la connessione al server.',
+      errVoteRequired: 'Inserisci il tuo nome.', errChoiceRequired: 'Vota almeno una data.', errVoteSaveFailed: 'Impossibile salvare il voto.',
+      createdBy: 'Creato da', codeHint: 'Condividi questo codice con altri per farli votare anche qui.',
+      tzNotice: (tz) => `Gli orari vengono convertiti automaticamente nel tuo fuso orario (${tz}).`,
+      copyLinkBtn: '🔗 Copia link diretto a questo sondaggio', linkCopied: '✓ Link copiato', codeCopied: 'Copiato!',
+      yourVoteTitle: 'Il tuo voto', saveVoteBtn: 'Salva voto', saveChangesBtn: 'Salva modifiche', savingVoteBtn: 'Salvataggio …',
+      alreadyVotedNotice: 'Hai già partecipato a questo sondaggio. Puoi modificare la tua scelta in qualsiasi momento.',
+      commentLabel: 'Commento (opzionale)', commentPlaceholder: 'es. "Potrei arrivare un po\u2019 in ritardo"',
+      lockedNotice: (d) => `Questo sondaggio è chiuso. La data confermata è: ${d}. Non è più possibile votare.`,
+      resultsTitle: (n) => `Risultati (${n} partecipanti)`, refreshBtn: '↻ Aggiorna', noVotesYet: 'Ancora nessun voto.',
+      dateCol: 'Data', yesCol: 'Sì',
+      organizerTitle: 'Per gli organizzatori', remindBtn: 'Invia promemoria',
+      finalizeLabel: 'Conferma la data definitiva', finalizeSelectPlaceholder: 'Scegli una data …', finalizeBtn: 'Conferma',
+      finalBanner: (d) => `✅ Data confermata: ${d}`,
+      remindSent: (n) => `Promemoria inviato a ${n} persona/e.`, remindFailed: 'Impossibile inviare il promemoria.',
+      finalizeChooseFirst: 'Scegli prima una data.', finalizeOk: 'Data confermata, i partecipanti sono stati informati.', finalizeFailed: 'Impossibile confermare.',
+      deleteBtn: '🗑 Elimina sondaggio', deleteConfirmText: (title) => `Vuoi davvero eliminare definitivamente il sondaggio "${title}"? Tutti i voti andranno persi.`,
+      deleteConfirmBtn: 'Sì, elimina definitivamente', deleteCancelBtn: 'Annulla', deleteFailed: 'Impossibile eliminare.',
+      alreadyFinalizedHint: 'La data è già stata confermata e non può più essere modificata.',
+      liveLabel: 'Live', pollLabel: 'Si aggiorna ogni 8s', localLabel: 'Locale',
+      newVoteTitle: 'Nuovo/i voto/i ricevuto/i', newVoteBody: (names) => `${names} ha/hanno votato.`,
+      dateLocale: 'it-IT'
+    },
+    el: {
+      createTitle: 'Δημιουργία νέας ψηφοφορίας', createSub: 'Πρότεινε πολλές ημερομηνίες και κάλεσε άλλους να ψηφίσουν.', createBtn: '+ Δημιουργία ψηφοφορίας',
+      joinTitle: 'Άνοιγμα ψηφοφορίας με κωδικό', joinSub: 'Έχεις έναν κωδικό; Πληκτρολόγησέ τον εδώ.', joinPlaceholder: 'π.χ. A1B2C3', joinBtn: 'Άνοιγμα',
+      recentTitle: 'Πρόσφατα δημιουργημένες', recentTitleParticipant: 'Πρόσφατη/ες ψηφοφορία/ες', recentEmpty: 'Δεν υπάρχουν ακόμη ψηφοφορίες.',
+      notifTitle: 'Ειδοποιήσεις προγράμματος περιήγησης', notifEnable: 'Ενεργοποίηση', notifGranted: 'Ενεργοποιημένες ✓', notifDenied: 'Αποκλεισμένες (άλλαξέ το στις ρυθμίσεις του browser)', notifUnsupported: 'Δεν υποστηρίζονται',
+      pollNotFound: 'Δεν βρέθηκε ψηφοφορία με αυτόν τον κωδικό.',
+      back: '← Πίσω', backAll: '← Επισκόπηση',
+      newPollTitle: 'Νέα ψηφοφορία',
+      titleLabel: 'Τίτλος', titlePlaceholder: 'π.χ. Ομαδικό μπάρμπεκιου στο πάρκο',
+      descLabel: 'Περιγραφή (προαιρετικό)', descPlaceholder: 'Επιπλέον πληροφορίες για τους συμμετέχοντες',
+      nameLabel: 'Το όνομά σου', namePlaceholder: 'Εμφανίζεται ως διοργανωτής',
+      optionsLabel: 'Προτεινόμενες ημερομηνίες', addOptionBtn: '+ Προσθήκη ημερομηνίας',
+      dateFieldLabel: 'Ημερομηνία', timeFieldLabel: 'Ώρα (προαιρετικό)',
+      tzCreateHint: (tz) => `Οι ώρες είναι στη ζώνη ώρας σου (${tz}) και θα μετατραπούν αυτόματα για διεθνείς συμμετέχοντες.`,
+      submitCreateBtn: 'Δημιουργία ψηφοφορίας', creatingBtn: 'Δημιουργία …',
+      notifSectionTitle: 'Ειδοποιήσεις', notifSectionSub: 'Κάθε κανάλι μπορεί να ενεργοποιηθεί ή να απενεργοποιηθεί ξεχωριστά.',
+      pushLabel: 'Ειδοποιήσεις προγράμματος περιήγησης', pushSub: 'Ειδοποίηση σε πραγματικό χρόνο για νέες ψήφους',
+      emailLabel: 'Email', emailSub: 'Πρόσκληση, υπενθύμιση, τελική επιβεβαίωση',
+      emailsLabel: 'Διευθύνσεις email συμμετεχόντων', emailsPlaceholder: 'anna@example.gr, ben@example.gr', emailsHint: 'Χωρισμένες με κόμμα ή μία ανά γραμμή.',
+      teamsLabel: 'Microsoft Teams', teamsSub: 'Δημοσίευση ενημερώσεων στο κανάλι',
+      teamsWebhookLabel: 'URL webhook Teams (προαιρετικό, αντικαθιστά το προεπιλεγμένο του διακομιστή)',
+      errTitleRequired: 'Παρακαλώ εισάγετε έναν τίτλο.', errNameRequired: 'Παρακαλώ εισάγετε το όνομά σας.', errDateRequired: 'Προσθέστε τουλάχιστον μία ημερομηνία.',
+      errCreateFailed: 'Δεν ήταν δυνατή η δημιουργία της ψηφοφορίας. Ελέγξτε τη σύνδεση με τον διακομιστή.',
+      errVoteRequired: 'Παρακαλώ εισάγετε το όνομά σας.', errChoiceRequired: 'Ψηφίστε τουλάχιστον μία ημερομηνία.', errVoteSaveFailed: 'Δεν ήταν δυνατή η αποθήκευση της ψήφου σας.',
+      createdBy: 'Δημιουργήθηκε από', codeHint: 'Μοιράσου αυτόν τον κωδικό με άλλους ώστε να μπορούν κι εκείνοι να ψηφίσουν εδώ.',
+      tzNotice: (tz) => `Οι ώρες μετατρέπονται αυτόματα στη ζώνη ώρας σου (${tz}).`,
+      copyLinkBtn: '🔗 Αντιγραφή απευθείας συνδέσμου προς αυτή την ψηφοφορία', linkCopied: '✓ Ο σύνδεσμος αντιγράφηκε', codeCopied: 'Αντιγράφηκε!',
+      yourVoteTitle: 'Η ψήφος σου', saveVoteBtn: 'Αποθήκευση ψήφου', saveChangesBtn: 'Αποθήκευση αλλαγών', savingVoteBtn: 'Αποθήκευση …',
+      alreadyVotedNotice: 'Έχεις ήδη συμμετάσχει σε αυτή την ψηφοφορία. Μπορείς να αλλάξεις την επιλογή σου ανά πάσα στιγμή.',
+      commentLabel: 'Σχόλιο (προαιρετικό)', commentPlaceholder: 'π.χ. "Μπορεί να αργήσω λίγο"',
+      lockedNotice: (d) => `Αυτή η ψηφοφορία έχει κλείσει. Η επιβεβαιωμένη ημερομηνία είναι: ${d}. Δεν είναι πλέον δυνατή η ψήφος.`,
+      resultsTitle: (n) => `Αποτελέσματα (${n} συμμετέχοντες)`, refreshBtn: '↻ Ανανέωση', noVotesYet: 'Δεν υπάρχουν ακόμη ψήφοι.',
+      dateCol: 'Ημερομηνία', yesCol: 'Ναι',
+      organizerTitle: 'Για διοργανωτές', remindBtn: 'Αποστολή υπενθύμισης',
+      finalizeLabel: 'Οριστικοποίηση ημερομηνίας', finalizeSelectPlaceholder: 'Επίλεξε ημερομηνία …', finalizeBtn: 'Οριστικοποίηση',
+      finalBanner: (d) => `✅ Η ημερομηνία επιβεβαιώθηκε: ${d}`,
+      remindSent: (n) => `Η υπενθύμιση στάλθηκε σε ${n} άτομο/α.`, remindFailed: 'Δεν ήταν δυνατή η αποστολή της υπενθύμισης.',
+      finalizeChooseFirst: 'Επίλεξε πρώτα μια ημερομηνία.', finalizeOk: 'Η ημερομηνία οριστικοποιήθηκε, οι συμμετέχοντες ενημερώθηκαν.', finalizeFailed: 'Δεν ήταν δυνατή η οριστικοποίηση.',
+      deleteBtn: '🗑 Διαγραφή ψηφοφορίας', deleteConfirmText: (title) => `Θέλεις σίγουρα να διαγράψεις οριστικά την ψηφοφορία "${title}"; Όλες οι ψήφοι θα χαθούν.`,
+      deleteConfirmBtn: 'Ναι, οριστική διαγραφή', deleteCancelBtn: 'Ακύρωση', deleteFailed: 'Δεν ήταν δυνατή η διαγραφή.',
+      alreadyFinalizedHint: 'Η ημερομηνία έχει ήδη οριστικοποιηθεί και δεν μπορεί πλέον να αλλάξει.',
+      liveLabel: 'Ζωντανά', pollLabel: 'Ανανεώνεται κάθε 8s', localLabel: 'Τοπικά',
+      newVoteTitle: 'Νέα ψήφος/οι ελήφθη/σαν', newVoteBody: (names) => `${names} ψήφισε/αν.`,
+      dateLocale: 'el-GR'
+    },
+    cs: {
+      createTitle: 'Vytvořit novou anketu', createSub: 'Navrhněte několik termínů a pozvěte ostatní k hlasování.', createBtn: '+ Vytvořit anketu',
+      joinTitle: 'Otevřít anketu pomocí kódu', joinSub: 'Máte kód od někoho jiného? Zadejte ho zde.', joinPlaceholder: 'např. A1B2C3', joinBtn: 'Otevřít',
+      recentTitle: 'Naposledy vytvořené', recentTitleParticipant: 'Nedávná anketa/y', recentEmpty: 'Zatím žádné ankety.',
+      notifTitle: 'Oznámení prohlížeče', notifEnable: 'Povolit', notifGranted: 'Povoleno ✓', notifDenied: 'Blokováno (změňte v nastavení prohlížeče)', notifUnsupported: 'Nepodporováno',
+      pollNotFound: 'S tímto kódem nebyla nalezena žádná anketa.',
+      back: '← Zpět', backAll: '← Přehled',
+      newPollTitle: 'Nová anketa',
+      titleLabel: 'Název', titlePlaceholder: 'např. Týmový gril v parku',
+      descLabel: 'Popis (volitelné)', descPlaceholder: 'Další informace pro účastníky',
+      nameLabel: 'Vaše jméno', namePlaceholder: 'Zobrazí se jako organizátor',
+      optionsLabel: 'Navrhované termíny', addOptionBtn: '+ Přidat termín',
+      dateFieldLabel: 'Datum', timeFieldLabel: 'Čas (volitelné)',
+      tzCreateHint: (tz) => `Časy jsou uvedeny ve vašem časovém pásmu (${tz}) a budou automaticky přepočítány pro zahraniční účastníky.`,
+      submitCreateBtn: 'Vytvořit anketu', creatingBtn: 'Vytváření …',
+      notifSectionTitle: 'Oznámení', notifSectionSub: 'Každý kanál lze jednotlivě zapnout nebo vypnout.',
+      pushLabel: 'Oznámení prohlížeče', pushSub: 'Upozornění v reálném čase na nové hlasy',
+      emailLabel: 'E-mail', emailSub: 'Pozvánka, připomenutí, závěrečné potvrzení',
+      emailsLabel: 'E-mailové adresy účastníků', emailsPlaceholder: 'anna@priklad.cz, ben@priklad.cz', emailsHint: 'Oddělené čárkou nebo jedna na řádek.',
+      teamsLabel: 'Microsoft Teams', teamsSub: 'Zveřejňovat aktualizace v kanálu',
+      teamsWebhookLabel: 'URL webhooku Teams (volitelné, přepíše výchozí nastavení serveru)',
+      errTitleRequired: 'Zadejte prosím název.', errNameRequired: 'Zadejte prosím své jméno.', errDateRequired: 'Přidejte prosím alespoň jeden termín.',
+      errCreateFailed: 'Anketu se nepodařilo vytvořit. Zkontrolujte připojení k serveru.',
+      errVoteRequired: 'Zadejte prosím své jméno.', errChoiceRequired: 'Hlasujte prosím alespoň pro jeden termín.', errVoteSaveFailed: 'Hlas se nepodařilo uložit.',
+      createdBy: 'Vytvořil(a)', codeHint: 'Sdílejte tento kód s ostatními, aby zde mohli také hlasovat.',
+      tzNotice: (tz) => `Časy se automaticky převádějí do vašeho časového pásma (${tz}).`,
+      copyLinkBtn: '🔗 Kopírovat přímý odkaz na tuto anketu', linkCopied: '✓ Odkaz zkopírován', codeCopied: 'Zkopírováno!',
+      yourVoteTitle: 'Váš hlas', saveVoteBtn: 'Uložit hlas', saveChangesBtn: 'Uložit změny', savingVoteBtn: 'Ukládání …',
+      alreadyVotedNotice: 'Této ankety jste se již zúčastnili. Svou volbu můžete kdykoli změnit.',
+      commentLabel: 'Komentář (volitelné)', commentPlaceholder: 'např. „Možná přijdu trochu později“',
+      lockedNotice: (d) => `Tato anketa je uzavřena. Potvrzený termín je: ${d}. Hlasování již není možné.`,
+      resultsTitle: (n) => `Výsledky (${n} účastníků)`, refreshBtn: '↻ Obnovit', noVotesYet: 'Zatím žádné hlasy.',
+      dateCol: 'Termín', yesCol: 'Ano',
+      organizerTitle: 'Pro organizátory', remindBtn: 'Odeslat připomenutí',
+      finalizeLabel: 'Potvrdit konečný termín', finalizeSelectPlaceholder: 'Vyberte termín …', finalizeBtn: 'Potvrdit',
+      finalBanner: (d) => `✅ Termín potvrzen: ${d}`,
+      remindSent: (n) => `Připomenutí odesláno ${n} osobě/osobám.`, remindFailed: 'Připomenutí se nepodařilo odeslat.',
+      finalizeChooseFirst: 'Nejprve vyberte termín.', finalizeOk: 'Termín potvrzen, účastníci byli informováni.', finalizeFailed: 'Nepodařilo se potvrdit.',
+      deleteBtn: '🗑 Smazat anketu', deleteConfirmText: (title) => `Opravdu chcete anketu „${title}“ natrvalo smazat? Všechny hlasy budou ztraceny.`,
+      deleteConfirmBtn: 'Ano, natrvalo smazat', deleteCancelBtn: 'Zrušit', deleteFailed: 'Smazání se nezdařilo.',
+      alreadyFinalizedHint: 'Termín již byl potvrzen a nelze jej dále měnit.',
+      liveLabel: 'Živě', pollLabel: 'Obnovuje se každých 8 s', localLabel: 'Lokální',
+      newVoteTitle: 'Přijat(y) nový(é) hlas(y)', newVoteBody: (names) => `${names} hlasoval(i).`,
+      dateLocale: 'cs-CZ'
+    },
+    pl: {
+      createTitle: 'Utwórz nową ankietę', createSub: 'Zaproponuj kilka terminów i zaproś innych do głosowania.', createBtn: '+ Utwórz ankietę',
+      joinTitle: 'Otwórz ankietę za pomocą kodu', joinSub: 'Masz kod od kogoś innego? Wpisz go tutaj.', joinPlaceholder: 'np. A1B2C3', joinBtn: 'Otwórz',
+      recentTitle: 'Ostatnio utworzone', recentTitleParticipant: 'Ostatnia ankieta / ankiety', recentEmpty: 'Nie ma jeszcze żadnych ankiet.',
+      notifTitle: 'Powiadomienia przeglądarki', notifEnable: 'Włącz', notifGranted: 'Włączone ✓', notifDenied: 'Zablokowane (zmień w ustawieniach przeglądarki)', notifUnsupported: 'Nieobsługiwane',
+      pollNotFound: 'Nie znaleziono ankiety z tym kodem.',
+      back: '← Wstecz', backAll: '← Przegląd',
+      newPollTitle: 'Nowa ankieta',
+      titleLabel: 'Tytuł', titlePlaceholder: 'np. Grill zespołowy w parku',
+      descLabel: 'Opis (opcjonalnie)', descPlaceholder: 'Dodatkowe informacje dla uczestników',
+      nameLabel: 'Twoje imię', namePlaceholder: 'Wyświetlane jako organizator',
+      optionsLabel: 'Proponowane terminy', addOptionBtn: '+ Dodaj termin',
+      dateFieldLabel: 'Data', timeFieldLabel: 'Godzina (opcjonalnie)',
+      tzCreateHint: (tz) => `Godziny podane są w Twojej strefie czasowej (${tz}) i zostaną automatycznie przeliczone dla uczestników międzynarodowych.`,
+      submitCreateBtn: 'Utwórz ankietę', creatingBtn: 'Tworzenie …',
+      notifSectionTitle: 'Powiadomienia', notifSectionSub: 'Każdy kanał można włączyć lub wyłączyć osobno.',
+      pushLabel: 'Powiadomienia przeglądarki', pushSub: 'Powiadomienie na żywo o nowych głosach',
+      emailLabel: 'E-mail', emailSub: 'Zaproszenie, przypomnienie, potwierdzenie ostateczne',
+      emailsLabel: 'Adresy e-mail uczestników', emailsPlaceholder: 'anna@przyklad.pl, ben@przyklad.pl', emailsHint: 'Oddzielone przecinkami lub po jednym w wierszu.',
+      teamsLabel: 'Microsoft Teams', teamsSub: 'Publikuj aktualizacje na kanale',
+      teamsWebhookLabel: 'URL webhooka Teams (opcjonalnie, zastępuje domyślny serwera)',
+      errTitleRequired: 'Proszę podać tytuł.', errNameRequired: 'Proszę podać swoje imię.', errDateRequired: 'Proszę dodać co najmniej jeden termin.',
+      errCreateFailed: 'Nie udało się utworzyć ankiety. Sprawdź połączenie z serwerem.',
+      errVoteRequired: 'Proszę podać swoje imię.', errChoiceRequired: 'Zagłosuj na co najmniej jeden termin.', errVoteSaveFailed: 'Nie udało się zapisać głosu.',
+      createdBy: 'Utworzone przez', codeHint: 'Udostępnij ten kod innym, aby również mogli tutaj głosować.',
+      tzNotice: (tz) => `Godziny są automatycznie przeliczane na Twoją strefę czasową (${tz}).`,
+      copyLinkBtn: '🔗 Kopiuj bezpośredni link do tej ankiety', linkCopied: '✓ Link skopiowany', codeCopied: 'Skopiowano!',
+      yourVoteTitle: 'Twój głos', saveVoteBtn: 'Zapisz głos', saveChangesBtn: 'Zapisz zmiany', savingVoteBtn: 'Zapisywanie …',
+      alreadyVotedNotice: 'Już wziąłeś/wzięłaś udział w tej ankiecie. Możesz zmienić swój wybór w dowolnym momencie.',
+      commentLabel: 'Komentarz (opcjonalnie)', commentPlaceholder: 'np. „Może się trochę spóźnię”',
+      lockedNotice: (d) => `Ta ankieta jest zamknięta. Potwierdzony termin to: ${d}. Głosowanie nie jest już możliwe.`,
+      resultsTitle: (n) => `Wyniki (${n} uczestników)`, refreshBtn: '↻ Odśwież', noVotesYet: 'Brak głosów.',
+      dateCol: 'Termin', yesCol: 'Tak',
+      organizerTitle: 'Dla organizatorów', remindBtn: 'Wyślij przypomnienie',
+      finalizeLabel: 'Zatwierdź ostateczny termin', finalizeSelectPlaceholder: 'Wybierz termin …', finalizeBtn: 'Zatwierdź',
+      finalBanner: (d) => `✅ Termin zatwierdzony: ${d}`,
+      remindSent: (n) => `Przypomnienie wysłane do ${n} osoby/osób.`, remindFailed: 'Nie udało się wysłać przypomnienia.',
+      finalizeChooseFirst: 'Najpierw wybierz termin.', finalizeOk: 'Termin zatwierdzony, uczestnicy zostali poinformowani.', finalizeFailed: 'Nie udało się zatwierdzić.',
+      deleteBtn: '🗑 Usuń ankietę', deleteConfirmText: (title) => `Czy na pewno chcesz trwale usunąć ankietę „${title}”? Wszystkie głosy zostaną utracone.`,
+      deleteConfirmBtn: 'Tak, usuń trwale', deleteCancelBtn: 'Anuluj', deleteFailed: 'Nie udało się usunąć.',
+      alreadyFinalizedHint: 'Termin został już zatwierdzony i nie można go zmienić.',
+      liveLabel: 'Na żywo', pollLabel: 'Odświeża się co 8 s', localLabel: 'Lokalnie',
+      newVoteTitle: 'Otrzymano nowy(e) głos(y)', newVoteBody: (names) => `${names} zagłosował(a/o/y).`,
+      dateLocale: 'pl-PL'
+    },
+    zh: {
+      createTitle: '创建新投票', createSub: '提出几个可选日期，邀请其他人投票。', createBtn: '+ 创建投票',
+      joinTitle: '通过代码打开投票', joinSub: '收到了别人的代码？在这里输入。', joinPlaceholder: '例如 A1B2C3', joinBtn: '打开',
+      recentTitle: '最近创建的', recentTitleParticipant: '最近的投票', recentEmpty: '暂时还没有投票。',
+      notifTitle: '浏览器通知', notifEnable: '启用', notifGranted: '已启用 ✓', notifDenied: '已阻止（请在浏览器设置中更改）', notifUnsupported: '不支持',
+      pollNotFound: '未找到该代码对应的投票。',
+      back: '← 返回', backAll: '← 概览',
+      newPollTitle: '新建投票',
+      titleLabel: '标题', titlePlaceholder: '例如：公园团队烧烤',
+      descLabel: '说明（可选）', descPlaceholder: '给参与者的补充信息',
+      nameLabel: '你的姓名', namePlaceholder: '将显示为组织者',
+      optionsLabel: '建议的日期', addOptionBtn: '+ 添加日期',
+      dateFieldLabel: '日期', timeFieldLabel: '时间（可选）',
+      tzCreateHint: (tz) => `时间以你所在的时区（${tz}）为准，会自动为国际参与者换算。`,
+      submitCreateBtn: '创建投票', creatingBtn: '正在创建…',
+      notifSectionTitle: '通知', notifSectionSub: '每个渠道都可以单独开启或关闭。',
+      pushLabel: '浏览器通知', pushSub: '有新投票时实时提醒',
+      emailLabel: '电子邮件', emailSub: '邀请、提醒、最终确认',
+      emailsLabel: '参与者电子邮箱', emailsPlaceholder: 'anna@example.com, ben@example.com', emailsHint: '用逗号分隔，或每行一个。',
+      teamsLabel: 'Microsoft Teams', teamsSub: '在频道中发布更新',
+      teamsWebhookLabel: 'Teams Webhook URL（可选，将覆盖服务器默认设置）',
+      errTitleRequired: '请输入标题。', errNameRequired: '请输入你的姓名。', errDateRequired: '请至少添加一个日期。',
+      errCreateFailed: '无法创建投票，请检查服务器连接。',
+      errVoteRequired: '请输入你的姓名。', errChoiceRequired: '请至少为一个日期投票。', errVoteSaveFailed: '无法保存你的投票。',
+      createdBy: '创建者：', codeHint: '将此代码分享给其他人，他们也可以在此投票。',
+      tzNotice: (tz) => `时间会自动换算为你的时区（${tz}）。`,
+      copyLinkBtn: '🔗 复制此投票的直接链接', linkCopied: '✓ 链接已复制', codeCopied: '已复制！',
+      yourVoteTitle: '你的投票', saveVoteBtn: '保存投票', saveChangesBtn: '保存更改', savingVoteBtn: '正在保存…',
+      alreadyVotedNotice: '你已经参加过此投票，随时可以修改你的选择。',
+      commentLabel: '备注（可选）', commentPlaceholder: '例如："我可能会稍微晚一点到"',
+      lockedNotice: (d) => `此投票已结束。确定的日期是：${d}。现在无法再投票。`,
+      resultsTitle: (n) => `结果（${n} 位参与者）`, refreshBtn: '↻ 刷新', noVotesYet: '暂无投票。',
+      dateCol: '日期', yesCol: '可以',
+      organizerTitle: '组织者专区', remindBtn: '发送提醒',
+      finalizeLabel: '确定最终日期', finalizeSelectPlaceholder: '选择一个日期…', finalizeBtn: '确定',
+      finalBanner: (d) => `✅ 日期已确定：${d}`,
+      remindSent: (n) => `已向 ${n} 人发送提醒。`, remindFailed: '提醒发送失败。',
+      finalizeChooseFirst: '请先选择一个日期。', finalizeOk: '日期已确定，参与者已收到通知。', finalizeFailed: '无法确定日期。',
+      deleteBtn: '🗑 删除投票', deleteConfirmText: (title) => `确定要永久删除投票"${title}"吗？所有投票记录都将丢失。`,
+      deleteConfirmBtn: '是，永久删除', deleteCancelBtn: '取消', deleteFailed: '删除失败。',
+      alreadyFinalizedHint: '日期已经确定，无法再更改。',
+      liveLabel: '实时', pollLabel: '每8秒刷新一次', localLabel: '本地',
+      newVoteTitle: '收到新投票', newVoteBody: (names) => `${names} 已投票。`,
+      dateLocale: 'zh-CN'
     }
   };
+
+  const SUPPORTED_LANGS = ['de', 'en', 'fr', 'es', 'it', 'el', 'cs', 'pl', 'zh'];
+  const LANG_NAMES = { de: 'Deutsch', en: 'English', fr: 'Français', es: 'Español', it: 'Italiano', el: 'Ελληνικά', cs: 'Čeština', pl: 'Polski', zh: '中文' };
+  const FLAG_SVGS = {
+    de: '<svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="5.34" y="0" fill="#000"/><rect width="24" height="5.34" y="5.33" fill="#DD0000"/><rect width="24" height="5.34" y="10.66" fill="#FFCE00"/></svg>',
+    en: '<svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="16" fill="#00247D"/><path d="M0,0 L24,16 M24,0 L0,16" stroke="#fff" stroke-width="3"/><path d="M0,0 L24,16 M24,0 L0,16" stroke="#CF142B" stroke-width="1.2"/><rect x="9" width="6" height="16" fill="#fff"/><rect y="6" width="24" height="4" fill="#fff"/><rect x="10.5" width="3" height="16" fill="#CF142B"/><rect y="7" width="24" height="2" fill="#CF142B"/></svg>',
+    fr: '<svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg"><rect width="8" height="16" fill="#0055A4"/><rect x="8" width="8" height="16" fill="#fff"/><rect x="16" width="8" height="16" fill="#EF4135"/></svg>',
+    es: '<svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="16" fill="#AA151B"/><rect width="24" height="8" y="4" fill="#F1BF00"/></svg>',
+    it: '<svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg"><rect width="8" height="16" fill="#008C45"/><rect x="8" width="8" height="16" fill="#fff"/><rect x="16" width="8" height="16" fill="#CD212A"/></svg>',
+    el: '<svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="16" fill="#0D5EAF"/>' +
+        '<rect width="24" height="1.8" y="1.8" fill="#fff"/><rect width="24" height="1.8" y="5.4" fill="#fff"/><rect width="24" height="1.8" y="9" fill="#fff"/><rect width="24" height="1.8" y="12.6" fill="#fff"/>' +
+        '<rect width="9" height="9" fill="#0D5EAF"/><rect x="3.5" width="2" height="9" fill="#fff"/><rect y="3.5" width="9" height="2" fill="#fff"/></svg>',
+    cs: '<svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="8" fill="#fff"/><rect y="8" width="24" height="8" fill="#D7141A"/><path d="M0,0 L12,8 L0,16 Z" fill="#11457E"/></svg>',
+    pl: '<svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="8" fill="#fff"/><rect y="8" width="24" height="8" fill="#DC143C"/></svg>',
+    zh: '<svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="16" fill="#DE2910"/>' +
+        '<polygon points="4,2 5,4.8 8,4.8 5.5,6.4 6.5,9 4,7.3 1.5,9 2.5,6.4 0,4.8 3,4.8" fill="#FFDE00"/>' +
+        '<polygon points="9,2.2 9.5,3.2 10.6,3.2 9.7,3.9 10,5 9,4.3 8,5 8.3,3.9 7.4,3.2 8.5,3.2" fill="#FFDE00"/>' +
+        '<polygon points="10.5,4.8 11,5.8 12.1,5.8 11.2,6.5 11.5,7.6 10.5,6.9 9.5,7.6 9.8,6.5 8.9,5.8 10,5.8" fill="#FFDE00"/>' +
+        '<polygon points="10.5,8 11,9 12.1,9 11.2,9.7 11.5,10.8 10.5,10.1 9.5,10.8 9.8,9.7 8.9,9 10,9" fill="#FFDE00"/>' +
+        '<polygon points="9,10.4 9.5,11.4 10.6,11.4 9.7,12.1 10,13.2 9,12.5 8,13.2 8.3,12.1 7.4,11.4 8.5,11.4" fill="#FFDE00"/></svg>'
+  };
+  function detectLang() {
+    const stored = localStorage.getItem('tf-lang');
+    if (stored && SUPPORTED_LANGS.includes(stored)) return stored;
+    const candidates = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'en'];
+    for (const c of candidates) {
+      const code = (c || '').toLowerCase().slice(0, 2);
+      if (SUPPORTED_LANGS.includes(code)) return code;
+    }
+    return 'en';
+  }
 
   const state = {
     view: 'home', pollIndex: [], createOptions: [],
@@ -281,19 +632,33 @@
     myChoices: {}, error: '', loading: false, liveMode: 'none',
     notifPermission: (typeof Notification !== 'undefined') ? Notification.permission : 'unsupported',
     orgMsg: '', confirmDelete: false,
-    lang: localStorage.getItem('tf-lang') || ((navigator.language || '').toLowerCase().startsWith('de') ? 'de' : 'en')
+    lang: detectLang(),
+    langMenuOpen: false
   };
-  if (!STR[state.lang]) state.lang = 'de';
   let eventSource = null, pollTimer = null, knownVoteKeys = new Set();
 
   function t() { return STR[state.lang]; }
-  function setLang(l) { state.lang = l; localStorage.setItem('tf-lang', l); document.documentElement.lang = l; renderLangSwitch(); render(); }
+  function setLang(l) { state.lang = l; state.langMenuOpen = false; localStorage.setItem('tf-lang', l); document.documentElement.lang = l; renderLangSwitch(); render(); }
   function renderLangSwitch() {
-    document.querySelectorAll('.tf-lang-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-lang') === state.lang);
+    const el = document.getElementById('tf-lang-switch');
+    if (!el) return;
+    const items = SUPPORTED_LANGS.map(code =>
+      '<button class="tf-lang-item' + (code === state.lang ? ' active' : '') + '" data-lang="' + code + '">' + FLAG_SVGS[code] + '<span>' + LANG_NAMES[code] + '</span></button>'
+    ).join('');
+    el.innerHTML =
+      '<button class="tf-lang-toggle" id="tf-lang-toggle" aria-label="Language">' + FLAG_SVGS[state.lang] + '<span>▾</span></button>' +
+      '<div class="tf-lang-menu' + (state.langMenuOpen ? ' open' : '') + '" id="tf-lang-menu">' + items + '</div>';
+    document.getElementById('tf-lang-toggle').onclick = (e) => {
+      e.stopPropagation();
+      state.langMenuOpen = !state.langMenuOpen;
+      renderLangSwitch();
+    };
+    el.querySelectorAll('[data-lang]').forEach(btn => {
+      btn.onclick = (e) => { e.stopPropagation(); setLang(btn.getAttribute('data-lang')); };
     });
   }
-  document.querySelectorAll('.tf-lang-btn').forEach(btn => btn.onclick = () => setLang(btn.getAttribute('data-lang')));
+  document.addEventListener('click', () => { if (state.langMenuOpen) { state.langMenuOpen = false; renderLangSwitch(); } });
+  document.documentElement.lang = state.lang;
   renderLangSwitch();
 
   function uid() { return Math.random().toString(36).slice(2, 8).toUpperCase(); }
