@@ -208,6 +208,7 @@
       copyLinkBtn: "🔗 Direkten Link zu dieser Umfrage kopieren", linkCopied: '✓ Link kopiert', codeCopied: 'Kopiert!',
       yourVoteTitle: 'Deine Stimme', saveVoteBtn: 'Abstimmung speichern', saveChangesBtn: 'Änderungen speichern', savingVoteBtn: 'Wird gespeichert …',
       alreadyVotedNotice: 'Du hast bereits an dieser Abstimmung teilgenommen. Du kannst deine Auswahl jederzeit ändern.',
+      commentLabel: 'Kommentar (optional)', commentPlaceholder: 'z.B. "Ich komme evtl. etwas später"',
       lockedNotice: (d) => `Diese Umfrage ist abgeschlossen. Der festgelegte Termin ist: ${d}. Es kann nicht mehr abgestimmt werden.`,
       resultsTitle: (n) => `Ergebnisse (${n} Teilnehmer)`, refreshBtn: '↻ Aktualisieren', noVotesYet: 'Noch keine Stimmen abgegeben.',
       dateCol: 'Termin', yesCol: 'Ja',
@@ -253,6 +254,7 @@
       copyLinkBtn: '🔗 Copy direct link to this poll', linkCopied: '✓ Link copied', codeCopied: 'Copied!',
       yourVoteTitle: 'Your vote', saveVoteBtn: 'Save vote', saveChangesBtn: 'Save changes', savingVoteBtn: 'Saving …',
       alreadyVotedNotice: "You've already taken part in this poll. You can change your answer anytime.",
+      commentLabel: 'Comment (optional)', commentPlaceholder: 'e.g. "I might be a bit late"',
       lockedNotice: (d) => `This poll is closed. The confirmed date is: ${d}. Voting is no longer possible.`,
       resultsTitle: (n) => `Results (${n} participants)`, refreshBtn: '↻ Refresh', noVotesYet: 'No votes yet.',
       dateCol: 'Date', yesCol: 'Yes',
@@ -587,6 +589,7 @@
     knownVoteKeys = new Set(state.votes.map(v => sanitizeKey(v.name)));
     const mine = state.votes.find(v => sanitizeKey(v.name) === sanitizeKey(state.myName));
     state.myChoices = mine ? { ...mine.choices } : {};
+    state.myComment = mine ? (mine.comment || '') : '';
     state.loading = false; render(); startLive(id);
   }
 
@@ -629,6 +632,9 @@
     }).join('');
 
     const participantHeaders = state.votes.map(v => '<th class="tf-participant-col">' + escapeHtml(v.name) + '</th>').join('');
+    const commentsHtml = state.votes.filter(v => v.comment).map(v =>
+      '<div style="font-size:13px;margin-bottom:8px"><span style="color:var(--amber);font-weight:500">' + escapeHtml(v.name) + ':</span> ' + escapeHtml(v.comment) + '</div>'
+    ).join('');
     const optionSelectHtml = poll.options.map(o => '<option value="' + o.id + '">' + fmtOption(o, poll) + '</option>').join('');
     const isOrganizer = getCreatedIds().includes(poll.id);
     const alreadyVoted = getVotedIds().includes(poll.id);
@@ -669,12 +675,14 @@
           (alreadyVoted ? '<div class="tf-ok" style="margin-top:6px">✓ ' + s.alreadyVotedNotice + '</div>' : '') +
           '<div class="tf-field" style="margin-top:12px"><label class="tf-label">' + s.nameLabel + '</label><input id="tf-vote-name" placeholder="' + s.namePlaceholder + '" value="' + escapeHtml(state.myName) + '" /></div>' +
           '<table class="tf-grid"><tbody>' + voteRows + '</tbody></table>' +
+          '<div class="tf-field" style="margin-top:12px"><label class="tf-label">' + s.commentLabel + '</label><textarea id="tf-vote-comment" rows="2" placeholder="' + s.commentPlaceholder + '">' + escapeHtml(state.myComment || '') + '</textarea></div>' +
           (state.error ? '<div class="tf-error">' + escapeHtml(state.error) + '</div>' : '') +
           '<button class="tf-btn-primary" data-action="submit-vote" style="margin-top:14px">' + (alreadyVoted ? s.saveChangesBtn : s.saveVoteBtn) + '</button></div>') +
       '<div class="tf-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">' +
         '<h2>' + s.resultsTitle(state.votes.length) + '</h2>' +
         '<button class="tf-btn-secondary" data-action="refresh" style="padding:6px 10px;font-size:12px">' + s.refreshBtn + '</button></div>' +
-        (state.votes.length ? '<div style="overflow-x:auto"><table class="tf-grid"><thead><tr><th style="text-align:left">' + s.dateCol + '</th>' + participantHeaders + '<th>' + s.yesCol + '</th></tr></thead><tbody>' + resultRows + '</tbody></table></div>' : '<div class="tf-empty">' + s.noVotesYet + '</div>') + '</div>' +
+        (state.votes.length ? '<div style="overflow-x:auto"><table class="tf-grid"><thead><tr><th style="text-align:left">' + s.dateCol + '</th>' + participantHeaders + '<th>' + s.yesCol + '</th></tr></thead><tbody>' + resultRows + '</tbody></table></div>' : '<div class="tf-empty">' + s.noVotesYet + '</div>') +
+        (commentsHtml ? '<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">' + commentsHtml + '</div>' : '') + '</div>' +
       organizerHtml;
 
     root.querySelector('[data-action="back-home"]').onclick = async () => { stopLive(); state.view = 'home'; state.error = ''; window.history.pushState({}, '', '/'); state.pollIndex = await getValidatedLocalPolls(); render(); };
@@ -733,7 +741,9 @@
     state.error = ''; state.myName = name; localStorage.setItem('tf-my-name', name);
     const btn = root.querySelector('[data-action="submit-vote"]');
     if (btn) { btn.disabled = true; btn.textContent = s.savingVoteBtn; }
-    const ok = await apiPost('/api/polls/' + state.currentPollId + '/votes', { name, choices: state.myChoices, voterId });
+    const comment = (root.querySelector('#tf-vote-comment')?.value || '').trim();
+    state.myComment = comment;
+    const ok = await apiPost('/api/polls/' + state.currentPollId + '/votes', { name, choices: state.myChoices, voterId, comment });
     if (!ok) { state.error = s.errVoteSaveFailed; render(); return; }
     markVotedLocally(state.currentPollId);
     await refreshPollView(true);
