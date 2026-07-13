@@ -84,6 +84,8 @@
   .tf-btn-secondary { background: transparent; color: var(--paper); border: 1px solid var(--line); padding: 10px 16px; font-size: 14px; }
   .tf-btn-secondary:hover { border-color: var(--muted); }
   .tf-btn-secondary:disabled { opacity: 0.4; cursor: default; }
+  .tf-btn-danger { background: var(--rust); color: #fff; border: none; font-weight: 600; padding: 10px 16px; font-size: 14px; }
+  .tf-btn-danger:hover { background: #d75f49; }
   .tf-btn-icon {
     background: transparent; border: 1px solid var(--line); color: var(--muted);
     width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
@@ -209,6 +211,8 @@
       finalBanner: (d) => `✅ Termin steht fest: ${d}`,
       remindSent: (n) => `Erinnerung an ${n} Person(en) gesendet.`, remindFailed: 'Erinnerung konnte nicht gesendet werden.',
       finalizeChooseFirst: 'Bitte zuerst einen Termin auswählen.', finalizeOk: 'Termin final festgelegt, Beteiligte wurden informiert.', finalizeFailed: 'Konnte nicht abgeschlossen werden.',
+      deleteBtn: '🗑 Umfrage löschen', deleteConfirmText: (title) => `Umfrage "${title}" wirklich unwiderruflich löschen? Alle Stimmen gehen dabei verloren.`,
+      deleteConfirmBtn: 'Ja, endgültig löschen', deleteCancelBtn: 'Abbrechen', deleteFailed: 'Konnte nicht gelöscht werden.',
       liveLabel: 'Live', pollLabel: 'Aktualisiert alle 8s', localLabel: 'Lokal',
       newVoteTitle: 'Neue Stimme(n) eingegangen', newVoteBody: (names) => `${names} hat/haben abgestimmt.`,
       dateLocale: 'de-DE'
@@ -247,6 +251,8 @@
       finalBanner: (d) => `✅ Date confirmed: ${d}`,
       remindSent: (n) => `Reminder sent to ${n} people.`, remindFailed: 'Could not send reminder.',
       finalizeChooseFirst: 'Please choose a date first.', finalizeOk: 'Date finalized, participants notified.', finalizeFailed: 'Could not finalize.',
+      deleteBtn: '🗑 Delete poll', deleteConfirmText: (title) => `Really delete the poll "${title}" for good? All votes will be lost.`,
+      deleteConfirmBtn: 'Yes, delete permanently', deleteCancelBtn: 'Cancel', deleteFailed: 'Could not delete.',
       liveLabel: 'Live', pollLabel: 'Refreshes every 8s', localLabel: 'Local',
       newVoteTitle: 'New vote(s) received', newVoteBody: (names) => `${names} voted.`,
       dateLocale: 'en-GB'
@@ -261,7 +267,7 @@
     myName: localStorage.getItem('tf-my-name') || '',
     myChoices: {}, error: '', loading: false, liveMode: 'none',
     notifPermission: (typeof Notification !== 'undefined') ? Notification.permission : 'unsupported',
-    orgMsg: '',
+    orgMsg: '', confirmDelete: false,
     lang: localStorage.getItem('tf-lang') || ((navigator.language || '').toLowerCase().startsWith('de') ? 'de' : 'en')
   };
   if (!STR[state.lang]) state.lang = 'de';
@@ -305,6 +311,10 @@
     const ids = getCreatedIds();
     if (!ids.includes(id)) { ids.push(id); localStorage.setItem('tf-created-ids', JSON.stringify(ids.slice(-100))); }
   }
+  function removeLocalPollEverywhere(id) {
+    localStorage.setItem('tf-my-polls', JSON.stringify(getLocalPolls().filter(p => p.id !== id)));
+    localStorage.setItem('tf-created-ids', JSON.stringify(getCreatedIds().filter(i => i !== id)));
+  }
   function sanitizeKey(str) { return (str || 'gast').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').slice(0, 40) || 'gast'; }
   function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
@@ -314,6 +324,7 @@
   }
   const apiGet = (p) => api(p);
   const apiPost = (p, body) => api(p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+  const apiDelete = (p) => api(p, { method: 'DELETE' });
 
   function fmtOption(opt) {
     const d = new Date(opt.date + 'T' + (opt.time || '00:00'));
@@ -346,6 +357,13 @@
       eventSource = new EventSource('/api/polls/' + pollId + '/stream');
       eventSource.addEventListener('vote', () => refreshPollView(true));
       eventSource.addEventListener('finalized', () => refreshPollView(true));
+      eventSource.addEventListener('deleted', () => {
+        stopLive();
+        state.view = 'home'; state.error = t().pollNotFound;
+        window.history.pushState({}, '', '/');
+        state.pollIndex = getLocalPolls();
+        render();
+      });
       eventSource.onerror = () => { if (eventSource) { eventSource.close(); eventSource = null; } startPolling(pollId); };
       state.liveMode = 'sse';
       renderStatusBadgeOnly();
@@ -502,7 +520,7 @@
 
   async function openPoll(id) {
     const s = t();
-    state.view = 'poll'; state.loading = true; state.currentPollId = id; state.error = ''; state.orgMsg = ''; render();
+    state.view = 'poll'; state.loading = true; state.currentPollId = id; state.error = ''; state.orgMsg = ''; state.confirmDelete = false; render();
     if (window.location.pathname.replace(/^\/+/, '').toUpperCase() !== id) window.history.pushState({}, '', '/' + id);
     const poll = await apiGet('/api/polls/' + id);
     if (!poll) {
@@ -560,12 +578,19 @@
     const participantHeaders = state.votes.map(v => '<th class="tf-participant-col">' + escapeHtml(v.name) + '</th>').join('');
     const optionSelectHtml = poll.options.map(o => '<option value="' + o.id + '">' + fmtOption(o) + '</option>').join('');
     const isOrganizer = getCreatedIds().includes(poll.id);
+    const deleteSectionHtml = state.confirmDelete
+      ? '<div class="tf-error" style="margin-top:14px">' + s.deleteConfirmText(poll.title) + '</div>' +
+        '<div class="tf-row" style="margin-top:8px">' +
+        '<button class="tf-btn-secondary" data-action="cancel-delete" style="flex:1">' + s.deleteCancelBtn + '</button>' +
+        '<button class="tf-btn-danger" data-action="confirm-delete" style="flex:1">' + s.deleteConfirmBtn + '</button></div>'
+      : '<button class="tf-btn-secondary" data-action="delete-poll" style="margin-top:14px;width:100%;color:var(--rust);border-color:var(--rust-dark)">' + s.deleteBtn + '</button>';
     const organizerHtml = isOrganizer
       ? '<div class="tf-card"><h2>' + s.organizerTitle + '</h2>' +
         '<div class="tf-field"><label class="tf-label">' + s.finalizeLabel + '</label>' +
         '<div class="tf-row"><select id="tf-finalize-select" style="flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--paper);border-radius:6px;padding:10px 12px;font-size:14px"><option value="">' + s.finalizeSelectPlaceholder + '</option>' + optionSelectHtml + '</select>' +
         '<button class="tf-btn-secondary" data-action="finalize">' + s.finalizeBtn + '</button></div></div>' +
-        (state.orgMsg ? '<div class="tf-ok">' + escapeHtml(state.orgMsg) + '</div>' : '') + '</div>'
+        (state.orgMsg ? '<div class="tf-ok">' + escapeHtml(state.orgMsg) + '</div>' : '') +
+        deleteSectionHtml + '</div>'
       : '';
 
     root.innerHTML =
@@ -616,6 +641,22 @@
       const r = await apiPost('/api/polls/' + state.currentPollId + '/finalize', { optionId });
       state.orgMsg = r ? s.finalizeOk : s.finalizeFailed;
       if (r) state.currentPoll.finalizedOptionId = optionId;
+      render();
+    };
+    const deleteBtn = root.querySelector('[data-action="delete-poll"]');
+    if (deleteBtn) deleteBtn.onclick = () => { state.confirmDelete = true; render(); };
+    const cancelDeleteBtn = root.querySelector('[data-action="cancel-delete"]');
+    if (cancelDeleteBtn) cancelDeleteBtn.onclick = () => { state.confirmDelete = false; render(); };
+    const confirmDeleteBtn = root.querySelector('[data-action="confirm-delete"]');
+    if (confirmDeleteBtn) confirmDeleteBtn.onclick = async () => {
+      confirmDeleteBtn.disabled = true;
+      const r = await apiDelete('/api/polls/' + state.currentPollId);
+      if (!r) { state.orgMsg = s.deleteFailed; state.confirmDelete = false; render(); return; }
+      removeLocalPollEverywhere(state.currentPollId);
+      stopLive();
+      state.view = 'home'; state.error = ''; state.confirmDelete = false;
+      window.history.pushState({}, '', '/');
+      state.pollIndex = getLocalPolls();
       render();
     };
     renderStatusBadgeOnly();
