@@ -204,6 +204,7 @@
       createdBy: 'Erstellt von', codeHint: 'Diesen Code an andere weitergeben, damit sie hier mit abstimmen können.',
       copyLinkBtn: "🔗 Direkten Link zu dieser Umfrage kopieren", linkCopied: '✓ Link kopiert', codeCopied: 'Kopiert!',
       yourVoteTitle: 'Deine Stimme', saveVoteBtn: 'Abstimmung speichern', savingVoteBtn: 'Wird gespeichert …',
+      lockedNotice: (d) => `Diese Umfrage ist abgeschlossen. Der festgelegte Termin ist: ${d}. Es kann nicht mehr abgestimmt werden.`,
       resultsTitle: (n) => `Ergebnisse (${n} Teilnehmer)`, refreshBtn: '↻ Aktualisieren', noVotesYet: 'Noch keine Stimmen abgegeben.',
       dateCol: 'Termin', yesCol: 'Ja',
       organizerTitle: 'Für Organisatoren', remindBtn: 'Erinnerung an Nicht-Abstimmende senden',
@@ -213,6 +214,7 @@
       finalizeChooseFirst: 'Bitte zuerst einen Termin auswählen.', finalizeOk: 'Termin final festgelegt, Beteiligte wurden informiert.', finalizeFailed: 'Konnte nicht abgeschlossen werden.',
       deleteBtn: '🗑 Umfrage löschen', deleteConfirmText: (title) => `Umfrage "${title}" wirklich unwiderruflich löschen? Alle Stimmen gehen dabei verloren.`,
       deleteConfirmBtn: 'Ja, endgültig löschen', deleteCancelBtn: 'Abbrechen', deleteFailed: 'Konnte nicht gelöscht werden.',
+      alreadyFinalizedHint: 'Der Termin wurde bereits festgelegt und kann nicht mehr geändert werden.',
       liveLabel: 'Live', pollLabel: 'Aktualisiert alle 8s', localLabel: 'Lokal',
       newVoteTitle: 'Neue Stimme(n) eingegangen', newVoteBody: (names) => `${names} hat/haben abgestimmt.`,
       dateLocale: 'de-DE'
@@ -244,6 +246,7 @@
       createdBy: 'Created by', codeHint: 'Share this code with others so they can vote here too.',
       copyLinkBtn: '🔗 Copy direct link to this poll', linkCopied: '✓ Link copied', codeCopied: 'Copied!',
       yourVoteTitle: 'Your vote', saveVoteBtn: 'Save vote', savingVoteBtn: 'Saving …',
+      lockedNotice: (d) => `This poll is closed. The confirmed date is: ${d}. Voting is no longer possible.`,
       resultsTitle: (n) => `Results (${n} participants)`, refreshBtn: '↻ Refresh', noVotesYet: 'No votes yet.',
       dateCol: 'Date', yesCol: 'Yes',
       organizerTitle: 'For organizers', remindBtn: 'Send reminder to non-voters',
@@ -253,6 +256,7 @@
       finalizeChooseFirst: 'Please choose a date first.', finalizeOk: 'Date finalized, participants notified.', finalizeFailed: 'Could not finalize.',
       deleteBtn: '🗑 Delete poll', deleteConfirmText: (title) => `Really delete the poll "${title}" for good? All votes will be lost.`,
       deleteConfirmBtn: 'Yes, delete permanently', deleteCancelBtn: 'Cancel', deleteFailed: 'Could not delete.',
+      alreadyFinalizedHint: 'The date has already been finalized and can no longer be changed.',
       liveLabel: 'Live', pollLabel: 'Refreshes every 8s', localLabel: 'Local',
       newVoteTitle: 'New vote(s) received', newVoteBody: (names) => `${names} voted.`,
       dateLocale: 'en-GB'
@@ -584,11 +588,14 @@
         '<button class="tf-btn-secondary" data-action="cancel-delete" style="flex:1">' + s.deleteCancelBtn + '</button>' +
         '<button class="tf-btn-danger" data-action="confirm-delete" style="flex:1">' + s.deleteConfirmBtn + '</button></div>'
       : '<button class="tf-btn-secondary" data-action="delete-poll" style="margin-top:14px;width:100%;color:var(--rust);border-color:var(--rust-dark)">' + s.deleteBtn + '</button>';
+    const finalizeSectionHtml = finalOption
+      ? '<div class="tf-hint">' + s.alreadyFinalizedHint + '</div>'
+      : '<div class="tf-field"><label class="tf-label">' + s.finalizeLabel + '</label>' +
+        '<div class="tf-row"><select id="tf-finalize-select" style="flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--paper);border-radius:6px;padding:10px 12px;font-size:14px"><option value="">' + s.finalizeSelectPlaceholder + '</option>' + optionSelectHtml + '</select>' +
+        '<button class="tf-btn-secondary" data-action="finalize">' + s.finalizeBtn + '</button></div></div>';
     const organizerHtml = isOrganizer
       ? '<div class="tf-card"><h2>' + s.organizerTitle + '</h2>' +
-        '<div class="tf-field"><label class="tf-label">' + s.finalizeLabel + '</label>' +
-        '<div class="tf-row"><select id="tf-finalize-select" style="flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--paper);border-radius:6px;padding:10px 12px;font-size:14px"><option value="">' + s.finalizeSelectPlaceholder + '</option>' + optionSelectHtml + '</select>' +
-        '<button class="tf-btn-secondary" data-action="finalize">' + s.finalizeBtn + '</button></div></div>' +
+        finalizeSectionHtml +
         (state.orgMsg ? '<div class="tf-ok">' + escapeHtml(state.orgMsg) + '</div>' : '') +
         deleteSectionHtml + '</div>'
       : '';
@@ -604,11 +611,14 @@
         '<div class="tf-code-display" data-action="copy-code" title="' + s.codeCopied + '">' + poll.id + '</div>' +
         '<div class="tf-code-hint">' + s.codeHint + '</div>' +
         '<button class="tf-btn-secondary" data-action="copy-link" style="width:100%;margin-top:10px">' + s.copyLinkBtn + '</button></div>' +
-      '<div class="tf-card"><h2>' + s.yourVoteTitle + '</h2>' +
-        '<div class="tf-field" style="margin-top:12px"><label class="tf-label">' + s.nameLabel + '</label><input id="tf-vote-name" placeholder="' + s.namePlaceholder + '" value="' + escapeHtml(state.myName) + '" /></div>' +
-        '<table class="tf-grid"><tbody>' + voteRows + '</tbody></table>' +
-        (state.error ? '<div class="tf-error">' + escapeHtml(state.error) + '</div>' : '') +
-        '<button class="tf-btn-primary" data-action="submit-vote" style="margin-top:14px">' + s.saveVoteBtn + '</button></div>' +
+      (finalOption
+        ? '<div class="tf-card"><h2>' + s.yourVoteTitle + '</h2>' +
+          '<div class="tf-final-banner" style="margin-top:12px;margin-bottom:0">' + s.lockedNotice(fmtOption(finalOption)) + '</div></div>'
+        : '<div class="tf-card"><h2>' + s.yourVoteTitle + '</h2>' +
+          '<div class="tf-field" style="margin-top:12px"><label class="tf-label">' + s.nameLabel + '</label><input id="tf-vote-name" placeholder="' + s.namePlaceholder + '" value="' + escapeHtml(state.myName) + '" /></div>' +
+          '<table class="tf-grid"><tbody>' + voteRows + '</tbody></table>' +
+          (state.error ? '<div class="tf-error">' + escapeHtml(state.error) + '</div>' : '') +
+          '<button class="tf-btn-primary" data-action="submit-vote" style="margin-top:14px">' + s.saveVoteBtn + '</button></div>') +
       '<div class="tf-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">' +
         '<h2>' + s.resultsTitle(state.votes.length) + '</h2>' +
         '<button class="tf-btn-secondary" data-action="refresh" style="padding:6px 10px;font-size:12px">' + s.refreshBtn + '</button></div>' +
@@ -632,7 +642,8 @@
       if (state.myChoices[opt] === val) delete state.myChoices[opt]; else state.myChoices[opt] = val;
       render();
     });
-    root.querySelector('[data-action="submit-vote"]').onclick = submitVote;
+    const submitVoteBtn = root.querySelector('[data-action="submit-vote"]');
+    if (submitVoteBtn) submitVoteBtn.onclick = submitVote;
     root.querySelector('[data-action="refresh"]').onclick = () => refreshPollView(false);
     const finalizeBtn = root.querySelector('[data-action="finalize"]');
     if (finalizeBtn) finalizeBtn.onclick = async () => {
