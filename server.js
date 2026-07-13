@@ -155,6 +155,7 @@ app.get('/api/polls/:id/votes', (req, res) => {
 app.post('/api/polls/:id/votes', async (req, res) => {
   const poll = db.polls[req.params.id];
   if (!poll) return res.status(404).json({ error: 'Umfrage nicht gefunden' });
+  if (poll.finalizedOptionId) return res.status(409).json({ error: 'Diese Umfrage wurde bereits abgeschlossen und kann nicht mehr geändert werden.' });
   const { name, email, choices, voterId } = req.body || {};
   if (!name || !choices) return res.status(400).json({ error: 'name und choices sind erforderlich.' });
 
