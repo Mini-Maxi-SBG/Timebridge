@@ -157,7 +157,7 @@ app.post('/api/polls/:id/votes', async (req, res) => {
   const poll = db.polls[req.params.id];
   if (!poll) return res.status(404).json({ error: 'Umfrage nicht gefunden' });
   if (poll.finalizedOptionId) return res.status(409).json({ error: 'Diese Umfrage wurde bereits abgeschlossen und kann nicht mehr geändert werden.' });
-  const { name, email, choices, voterId } = req.body || {};
+  const { name, email, choices, voterId, comment } = req.body || {};
   if (!name || !choices) return res.status(400).json({ error: 'name und choices sind erforderlich.' });
 
   // Bevorzugt eine geräteeigene Kennung als Schlüssel, damit zwei Personen mit dem
@@ -165,7 +165,7 @@ app.post('/api/polls/:id/votes', async (req, res) => {
   // wird auf den Namen zurückgefallen.
   const key = voterId ? 'v:' + voterId : name.trim().toLowerCase();
   db.votes[poll.id] = db.votes[poll.id] || {};
-  db.votes[poll.id][key] = { name: name.trim(), email: email || '', choices, votedAt: Date.now() };
+  db.votes[poll.id][key] = { name: name.trim(), email: email || '', choices, comment: (comment || '').slice(0, 300), votedAt: Date.now() };
   saveData();
 
   broadcast(poll.id, 'vote', { name: name.trim() });
